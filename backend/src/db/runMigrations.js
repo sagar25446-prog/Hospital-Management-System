@@ -6,25 +6,29 @@
 
 const fs = require('fs');
 const path = require('path');
-const { neon } = require('@neondatabase/serverless');
+const { Client } = require('pg');
 
 const MIGRATIONS_DIR = path.join(__dirname, 'migrations');
 const TRACKING_TABLE = 'schema_migrations';
 
 async function main() {
-  const sql = neon(process.env.DATABASE_URL);
-
+  const client = new Client({
+    connectionString: process.env.DATABASE_URL,
+    ssl: { rejectUnauthorized: false }
+  });
+  
   try {
+    await client.connect();
     // Ensure tracking table exists
-    await sql`
+    await client.query(`
       CREATE TABLE IF NOT EXISTS schema_migrations (
         name VARCHAR(255) PRIMARY KEY,
         applied_at TIMESTAMPTZ DEFAULT NOW()
       )
-    `;
+    `);
 
     // Get already-applied migrations
-    const applied = await sql`SELECT name FROM schema_migrations ORDER BY name`;
+    const { rows: applied } = await client.query(`SELECT name FROM schema_migrations ORDER BY name`);
     const appliedSet = new Set(applied.map((r) => r.name));
 
     // Read migration files
@@ -43,19 +47,11 @@ async function main() {
       const filePath = path.join(MIGRATIONS_DIR, file);
       const migrationSql = fs.readFileSync(filePath, 'utf8');
 
-      // Execute the migration (each statement separately for HTTP mode)
-      // Split by semicolons, filter empty statements
-      const statements = migrationSql
-        .split(';')
-        .map((s) => s.trim())
-        .filter((s) => s.length > 0 && !s.startsWith('--'));
-
-      for (const stmt of statements) {
-        await sql(stmt);
-      }
+      // Execute the migration entirely at once
+      await client.query(migrationSql);
 
       // Mark as applied
-      await sql`INSERT INTO schema_migrations (name) VALUES (${file})`;
+      await client.query(`INSERT INTO schema_migrations (name) VALUES ($1)`, [file]);
       console.log(`  ✅ Applied: ${file}`);
       appliedCount++;
     }
@@ -68,6 +64,8 @@ async function main() {
   } catch (err) {
     console.error('❌ Migration failed:', err.message || err);
     process.exit(1);
+  } finally {
+    await client.end();
   }
 }
 
