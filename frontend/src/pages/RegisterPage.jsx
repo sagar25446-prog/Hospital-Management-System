@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { register as registerApi } from '../api/auth.api';
 import { ErrorMessage } from '../components/common';
+import GoogleLoginButton from '../components/auth/GoogleLoginButton';
 import { Activity, Mail, Lock, User, Phone, HeartPulse, Stethoscope } from 'lucide-react';
 import { motion } from 'framer-motion';
 
@@ -80,6 +81,13 @@ export default function RegisterPage() {
     } finally {
       setLoading(false);
     }
+  }
+
+  function handleGoogleSuccess(data) {
+    setError('');
+    if (data.user) setUser(data.user);
+    const userRole = data.user?.role || 'patient';
+    navigate(userRole === 'doctor' ? '/doctor/queue' : '/', { replace: true });
   }
 
   return (
@@ -371,6 +379,20 @@ export default function RegisterPage() {
                   'Create Account'
                 )}
               </button>
+
+              {role === 'patient' && (
+                <>
+                  <div className="relative my-6">
+                    <div className="absolute inset-0 flex items-center">
+                      <div className="w-full border-t border-gray-200"></div>
+                    </div>
+                    <div className="relative flex justify-center text-xs uppercase">
+                      <span className="bg-white px-3 text-gray-400 font-medium tracking-wider">Or</span>
+                    </div>
+                  </div>
+                  <GoogleLoginButton onSuccess={handleGoogleSuccess} onError={setError} />
+                </>
+              )}
 
               <p className="mt-6 text-center text-sm text-gray-500">
                 Already have an account?{' '}

@@ -6,12 +6,43 @@
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
+const { OAuth2Client } = require('google-auth-library');
 const { pool } = require('../../config/database');
 const { ApiError } = require('../../utils/ApiError');
 
 const BCRYPT_ROUNDS = 10;
 const ACCESS_TOKEN_EXPIRY = '15m';
 const REFRESH_TOKEN_EXPIRY = '7d';
+
+const googleClient = process.env.GOOGLE_CLIENT_ID
+  ? new OAuth2Client(process.env.GOOGLE_CLIENT_ID)
+  : null;
+
+/**
+ * Issue a fresh access + refresh token pair for a user, persist the refresh
+ * token hash, and return everything the controller needs to set cookies.
+ * Shared by password login, register, refresh, and Google sign-in so token
+ * shape/expiry can never drift between auth methods.
+ */
+async function issueTokens(user) {
+  const accessToken = jwt.sign(
+    { userId: user.id, email: user.email, role: user.role },
+    process.env.JWT_SECRET,
+    { expiresIn: ACCESS_TOKEN_EXPIRY }
+  );
+  const refreshToken = jwt.sign(
+    { userId: user.id },
+    process.env.JWT_REFRESH_SECRET,
+    { expiresIn: REFRESH_TOKEN_EXPIRY }
+  );
+  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+  await pool.query(
+    `INSERT INTO refresh_tokens (user_id, token_hash, expires_at)
+     VALUES ($1, $2, $3)`,
+    [user.id, hashRefreshToken(refreshToken), expiresAt]
+  );
+  return { accessToken, refreshToken, expiresIn: 900 };
+}
 
 function hashRefreshToken(token) {
   return crypto.createHash('sha256').update(token).digest('hex');
@@ -250,10 +281,112 @@ async function getMe(userId) {
   return dto;
 }
 
+/**
+ * Google sign-in / sign-up: verify the Google ID token server-side (never trust
+ * the client's claims about who it is), then:
+ *   1. If a user is already linked to this Google account -> log them in.
+ *   2. Else if a *verified* Google email matches an existing local account -> link it.
+ *   3. Else create a brand-new patient account.
+ * Always returns the same shape as login()/register() so the controller can
+ * set cookies identically regardless of auth method.
+ */
+async function loginWithGoogle(idToken) {
+  if (!googleClient) {
+    throw new ApiError(500, 'Google sign-in is not configured on this server');
+  }
+
+  let payload;
+  try {
+    const ticket = await googleClient.verifyIdToken({
+      idToken,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
+    payload = ticket.getPayload();
+  } catch (err) {
+    throw new ApiError(401, 'Invalid Google credential');
+  }
+
+  if (!payload || !payload.email) {
+    throw new ApiError(401, 'Google account has no verifiable email');
+  }
+  if (!payload.email_verified) {
+    throw new ApiError(401, 'Google email is not verified');
+  }
+
+  const email = payload.email.toLowerCase();
+  const googleId = payload.sub;
+  const avatarUrl = payload.picture || null;
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    // 1. Already linked to this Google account?
+    let result = await client.query(
+      `SELECT id, email, role, is_active, created_at, updated_at
+       FROM users WHERE google_id = $1`,
+      [googleId]
+    );
+    let user = result.rows[0];
+
+    if (!user) {
+      // 2. Existing local account with the same verified email -> link it.
+      result = await client.query(
+        `SELECT id, email, role, is_active, created_at, updated_at
+         FROM users WHERE email = $1`,
+        [email]
+      );
+      user = result.rows[0];
+
+      if (user) {
+        await client.query(
+          `UPDATE users SET google_id = $1, avatar_url = COALESCE(avatar_url, $2), updated_at = NOW()
+           WHERE id = $3`,
+          [googleId, avatarUrl, user.id]
+        );
+      } else {
+        // 3. Brand-new account. Google sign-in only ever creates patients;
+        // doctor/reception/admin accounts are provisioned by an admin.
+        const firstName = payload.given_name || payload.name || 'New';
+        const lastName = payload.family_name || 'Patient';
+
+        const userResult = await client.query(
+          `INSERT INTO users (email, role, google_id, avatar_url, auth_provider)
+           VALUES ($1, 'patient', $2, $3, 'google')
+           RETURNING id, email, role, is_active, created_at, updated_at`,
+          [email, googleId, avatarUrl]
+        );
+        user = userResult.rows[0];
+
+        await client.query(
+          `INSERT INTO patients (user_id, first_name, last_name)
+           VALUES ($1, $2, $3)`,
+          [user.id, firstName, lastName]
+        );
+      }
+    }
+
+    if (!user.is_active) {
+      throw new ApiError(403, 'Account is deactivated');
+    }
+
+    await client.query('COMMIT');
+
+    const tokens = await issueTokens(user);
+    return { user: toUserDto(user), ...tokens };
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
+}
+
 module.exports = {
   register,
   login,
   refresh,
   logout,
   getMe,
+  loginWithGoogle,
 };

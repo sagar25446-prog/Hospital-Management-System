@@ -14,6 +14,11 @@ export async function register(payload) {
   return data;
 }
 
+export async function googleLogin(idToken) {
+  const { data } = await apiClient.post('auth/google', { idToken });
+  return data;
+}
+
 export async function refresh() {
   const { data } = await apiClient.post('auth/refresh');
   return data;

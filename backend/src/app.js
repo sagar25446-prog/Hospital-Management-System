@@ -49,7 +49,14 @@ app.use(cors({
   credentials: true,
 }));
 
-app.use(express.json({ limit: '1mb' })); // Prevent oversized payloads
+app.use(express.json({
+  limit: '1mb', // Prevent oversized payloads
+  verify: (req, res, buf) => {
+    // Razorpay signs the exact raw bytes of the webhook body; re-serializing
+    // req.body would produce a different byte sequence and fail verification.
+    req.rawBody = buf;
+  },
+})); 
 
 // Rate limiting on auth endpoints (brute force protection)
 const authLimiter = rateLimit({

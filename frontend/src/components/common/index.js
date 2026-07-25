@@ -4,6 +4,6 @@ export { default as Card } from './Card';
 export { default as LoadingSpinner } from './LoadingSpinner';
 export { default as ErrorMessage } from './ErrorMessage';
 export { default as QRCodeDisplay } from './QRCodeDisplay';
-export { default as RazorpayMockModal } from './RazorpayMockModal';
+export { default as RazorpayCheckout } from './RazorpayCheckout';
 export { default as VideoCall } from './VideoCall';
 export { default as VideoCallButton } from './VideoCallButton';

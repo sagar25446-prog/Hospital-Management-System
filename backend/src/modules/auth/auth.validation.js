@@ -84,10 +84,19 @@ function validateLogout(token) {
   return { value: { refreshToken: token.trim() } };
 }
 
+function validateGoogleAuth(body) {
+  const { idToken } = body || {};
+  if (!idToken || typeof idToken !== 'string' || !idToken.trim()) {
+    return { error: 'Google idToken is required' };
+  }
+  return { value: { idToken: idToken.trim() } };
+}
+
 module.exports = {
   validateRegister,
   validateLogin,
   validateRefresh,
   validateLogout,
+  validateGoogleAuth,
   ROLES,
 };

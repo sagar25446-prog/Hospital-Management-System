@@ -11,6 +11,7 @@ const { authMiddleware } = require('../../middleware/authMiddleware');
 
 router.post('/register', asyncHandler(authController.register));
 router.post('/login', asyncHandler(authController.login));
+router.post('/google', asyncHandler(authController.googleAuth));
 router.post('/refresh', asyncHandler(authController.refresh));
 router.post('/logout', asyncHandler(authController.logout));
 router.get('/me', authMiddleware, asyncHandler(authController.getMe));

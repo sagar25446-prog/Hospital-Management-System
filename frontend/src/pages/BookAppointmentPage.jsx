@@ -5,8 +5,8 @@ import { listDoctors } from '../api/doctors.api';
 import { bookAppointment, getPatientAppointments, cancelAppointment } from '../api/appointments.api';
 import { getMe } from '../api/auth.api';
 import { listPatients } from '../api/patients.api';
-import { createPaymentIntent } from '../api/payment.api';
-import { ErrorMessage, RazorpayMockModal } from '../components/common';
+import { createOrder } from '../api/payment.api';
+import { ErrorMessage, RazorpayCheckout } from '../components/common';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Calendar, Clock, User, ChevronLeft, CheckCircle2,
@@ -152,9 +152,9 @@ export default function BookAppointmentPage() {
       // 2. Determine if payment needed
       const fee = parseFloat(selectedDoctor.consultation_fee) || 0;
       if (fee > 0) {
-        // Create Intent
-        const intent = await createPaymentIntent(appt.id);
-        setPaymentIntent(intent);
+        // Create a real Razorpay order for this appointment
+        const order = await createOrder(appt.id);
+        setPaymentIntent(order);
         setPaymentModalOpen(true);
       } else {
         handlePaymentSuccess(null, appt);
@@ -579,11 +579,12 @@ export default function BookAppointmentPage() {
           </div>
         </div>
       </div>
-      <RazorpayMockModal 
-        isOpen={paymentModalOpen} 
-        intent={paymentIntent} 
-        onSuccess={(invoice) => handlePaymentSuccess(invoice, null)} 
-        onClose={() => setPaymentModalOpen(false)} 
+      <RazorpayCheckout
+        isOpen={paymentModalOpen}
+        intent={paymentIntent}
+        onSuccess={(invoice) => handlePaymentSuccess(invoice, null)}
+        onClose={() => setPaymentModalOpen(false)}
+        onError={(message) => { setPaymentModalOpen(false); setError(message); }}
       />
     </main>
   );

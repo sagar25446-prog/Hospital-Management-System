@@ -9,6 +9,7 @@ const {
   validateLogin,
   validateRefresh,
   validateLogout,
+  validateGoogleAuth,
 } = require('./auth.validation');
 
 const isProd = process.env.NODE_ENV === 'production';
@@ -88,6 +89,20 @@ async function logout(req, res, next) {
   }
 }
 
+async function googleAuth(req, res, next) {
+  const result = validateGoogleAuth(req.body);
+  if (result.error) {
+    return res.status(400).json({ message: result.error });
+  }
+  try {
+    const data = await authService.loginWithGoogle(result.value.idToken);
+    setTokenCookies(res, data.accessToken, data.refreshToken);
+    return res.json({ user: data.user, expiresIn: data.expiresIn });
+  } catch (err) {
+    next(err);
+  }
+}
+
 async function getMe(req, res, next) {
   try {
     const user = await authService.getMe(req.user.id);
@@ -103,4 +118,5 @@ module.exports = {
   refresh,
   logout,
   getMe,
+  googleAuth,
 };
