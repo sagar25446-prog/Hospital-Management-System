@@ -373,7 +373,8 @@ async function loginWithGoogle(idToken) {
     await client.query('COMMIT');
 
     const tokens = await issueTokens(user);
-    return { user: toUserDto(user), ...tokens };
+    const fullUser = await getMe(user.id);
+    return { user: fullUser, ...tokens };
   } catch (err) {
     await client.query('ROLLBACK');
     throw err;

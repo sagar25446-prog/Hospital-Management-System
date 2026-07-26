@@ -104,6 +104,77 @@ async function getAppointmentHistory(req, res, next) {
   }
 }
 
+// ──────────── Document Uploads ────────────
+
+async function uploadDocument(req, res, next) {
+  const { id } = req.params;
+  try {
+    const ownId = req.user?.role === 'patient' ? await patientService.getPatientIdByUserId(req.user.id) : null;
+    if (req.user?.role === 'patient' && ownId !== id) {
+      return res.status(403).json({ message: 'You can only upload documents to your own profile' });
+    }
+    if (!['admin', 'reception'].includes(req.user?.role) && req.user?.role !== 'patient') {
+      return res.status(403).json({ message: 'Insufficient permissions' });
+    }
+    const { file_name, file_type, file_data, category, notes } = req.body;
+    if (!file_name || !file_type || !file_data) {
+      return res.status(400).json({ message: 'file_name, file_type, and file_data are required' });
+    }
+    const doc = await patientService.uploadDocument(id, { file_name, file_type, file_data, category, notes });
+    return res.status(201).json(doc);
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function listDocuments(req, res, next) {
+  const { id } = req.params;
+  try {
+    const ownId = req.user?.role === 'patient' ? await patientService.getPatientIdByUserId(req.user.id) : null;
+    if (req.user?.role === 'patient' && ownId !== id) {
+      return res.status(403).json({ message: 'You can only view your own documents' });
+    }
+    if (!['admin', 'reception'].includes(req.user?.role) && req.user?.role !== 'patient') {
+      return res.status(403).json({ message: 'Insufficient permissions' });
+    }
+    const docs = await patientService.listDocuments(id);
+    return res.json(docs);
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function downloadDocument(req, res, next) {
+  const { docId } = req.params;
+  try {
+    const doc = await patientService.getDocument(docId);
+    // Authorization: patient can only download own documents
+    if (req.user?.role === 'patient') {
+      const ownId = await patientService.getPatientIdByUserId(req.user.id);
+      if (ownId !== doc.patient_id) {
+        return res.status(403).json({ message: 'Access denied' });
+      }
+    }
+    return res.json(doc);
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function deleteDocument(req, res, next) {
+  const { id, docId } = req.params;
+  try {
+    const ownId = req.user?.role === 'patient' ? await patientService.getPatientIdByUserId(req.user.id) : null;
+    if (req.user?.role === 'patient' && ownId !== id) {
+      return res.status(403).json({ message: 'You can only delete your own documents' });
+    }
+    const result = await patientService.deleteDocument(docId, id);
+    return res.json(result);
+  } catch (err) {
+    next(err);
+  }
+}
+
 module.exports = {
   createPatient,
   listPatients,
@@ -111,4 +182,8 @@ module.exports = {
   updatePatient,
   getQueueHistory,
   getAppointmentHistory,
+  uploadDocument,
+  listDocuments,
+  downloadDocument,
+  deleteDocument,
 };

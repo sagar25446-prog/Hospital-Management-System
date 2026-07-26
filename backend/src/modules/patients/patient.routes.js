@@ -18,4 +18,10 @@ router.patch('/:id', asyncHandler(patientController.updatePatient));
 router.get('/:id/queue-history', asyncHandler(patientController.getQueueHistory));
 router.get('/:id/appointment-history', asyncHandler(patientController.getAppointmentHistory));
 
+// Document upload endpoints
+router.post('/:id/documents', asyncHandler(patientController.uploadDocument));
+router.get('/:id/documents', asyncHandler(patientController.listDocuments));
+router.get('/documents/:docId', asyncHandler(patientController.downloadDocument));
+router.delete('/:id/documents/:docId', asyncHandler(patientController.deleteDocument));
+
 module.exports = router;

@@ -2,7 +2,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import ProtectedRoute from '../components/auth/ProtectedRoute';
 import LoginPage from '../pages/LoginPage';
-import RegisterPage from '../pages/RegisterPage';
+import OnboardingPage from '../pages/OnboardingPage';
 import Dashboard from '../pages/Dashboard';
 import QueuePage from '../pages/QueuePage';
 import DoctorQueuePage from '../pages/DoctorQueuePage';
@@ -12,9 +12,13 @@ import BookAppointmentPage from '../pages/BookAppointmentPage';
 import DoctorProfilePage from '../pages/DoctorProfilePage';
 import PatientProfilePage from '../pages/PatientProfilePage';
 import MedicalRecordsPage from '../pages/MedicalRecordsPage';
+import HospitalsPage from '../pages/HospitalsPage';
+import HospitalDetailsPage from '../pages/HospitalDetailsPage';
 import NotFoundPage from '../pages/NotFoundPage';
 
 import LandingPage from '../pages/LandingPage';
+
+import AppLayout from '../components/layout/AppLayout';
 
 function AppRouter() {
   const { isAuthenticated, loading, user } = useAuth();
@@ -42,62 +46,70 @@ function AppRouter() {
       {/* Public Landing Page & Auth */}
       <Route path="/" element={isAuthenticated ? <RoleHome /> : <LandingPage />} />
       <Route path="/login" element={isAuthenticated ? <Navigate to="/" replace /> : <LoginPage />} />
-      <Route path="/register" element={isAuthenticated ? <Navigate to="/" replace /> : <RegisterPage />} />
-
-      <Route path="/dashboard" element={<Navigate to="/" replace />} />
+      <Route path="/onboarding" element={isAuthenticated ? <OnboardingPage /> : <Navigate to="/login" replace />} />
 
       {/* Public: anyone can view doctors list and individual queues */}
       <Route path="/doctors" element={<DoctorsPage />} />
       <Route path="/queue/:doctorId" element={<QueuePage />} />
       <Route path="/display/:doctorId" element={<DisplayQueuePage />} />
 
-      {/* Protected: doctor/reception queue control */}
-      <Route
-        path="/doctor/queue/:doctorId?"
-        element={
-          <ProtectedRoute allowedRoles={['doctor', 'reception', 'admin']}>
-            <DoctorQueuePage />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/doctor/profile"
-        element={
-          <ProtectedRoute allowedRoles={['doctor']}>
-            <DoctorProfilePage />
-          </ProtectedRoute>
-        }
-      />
+      {/* Routes with AppLayout (Global Navigation) */}
+      <Route element={<AppLayout />}>
+        
+        <Route path="/dashboard" element={<Navigate to="/" replace />} />
+        
+        {/* Hospitals Directory */}
+        <Route path="/hospitals" element={<HospitalsPage />} />
+        <Route path="/hospital/:id" element={<HospitalDetailsPage />} />
 
-      {/* Protected: patient appointment booking */}
-      <Route
-        path="/book"
-        element={
-          <ProtectedRoute allowedRoles={['patient', 'reception', 'admin']}>
-            <BookAppointmentPage />
-          </ProtectedRoute>
-        }
-      />
-      
-      {/* Protected: patient profile */}
-      <Route
-        path="/profile"
-        element={
-          <ProtectedRoute allowedRoles={['patient']}>
-            <PatientProfilePage />
-          </ProtectedRoute>
-        }
-      />
+        {/* Protected: doctor/reception queue control */}
+        <Route
+          path="/doctor/queue/:doctorId?"
+          element={
+            <ProtectedRoute allowedRoles={['doctor', 'reception', 'admin']}>
+              <DoctorQueuePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/doctor/profile"
+          element={
+            <ProtectedRoute allowedRoles={['doctor']}>
+              <DoctorProfilePage />
+            </ProtectedRoute>
+          }
+        />
 
-      {/* Protected: patient medical records */}
-      <Route
-        path="/medical-records"
-        element={
-          <ProtectedRoute allowedRoles={['patient']}>
-            <MedicalRecordsPage />
-          </ProtectedRoute>
-        }
-      />
+        {/* Protected: patient appointment booking */}
+        <Route
+          path="/book"
+          element={
+            <ProtectedRoute allowedRoles={['patient', 'reception', 'admin']}>
+              <BookAppointmentPage />
+            </ProtectedRoute>
+          }
+        />
+        
+        {/* Protected: patient profile */}
+        <Route
+          path="/profile"
+          element={
+            <ProtectedRoute allowedRoles={['patient']}>
+              <PatientProfilePage />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Protected: patient medical records */}
+        <Route
+          path="/medical-records"
+          element={
+            <ProtectedRoute allowedRoles={['patient']}>
+              <MedicalRecordsPage />
+            </ProtectedRoute>
+          }
+        />
+      </Route>
 
       {/* 404 Page */}
       <Route path="*" element={<NotFoundPage />} />

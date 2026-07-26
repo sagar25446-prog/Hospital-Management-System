@@ -125,10 +125,65 @@ async function getAppointmentHistory(patientId, limit, offset) {
   );
   return result.rows;
 }
-
 async function getPatientIdByUserId(userId) {
   const r = await pool.query('SELECT id FROM patients WHERE user_id = $1', [userId]);
   return r.rows[0] ? r.rows[0].id : null;
+}
+
+// ──────────── Document Uploads ────────────
+
+const MAX_DOC_SIZE = 5 * 1024 * 1024; // 5 MB
+const ALLOWED_CATEGORIES = ['lab_report', 'prescription', 'scan', 'insurance', 'general'];
+
+async function uploadDocument(patientId, { file_name, file_type, file_data, category, notes }) {
+  await getPatientById(patientId); // ensure patient exists
+
+  // Validate Base64 size (rough estimate: Base64 is ~33% larger than raw)
+  const rawSize = Math.ceil((file_data.length * 3) / 4);
+  if (rawSize > MAX_DOC_SIZE) {
+    throw new ApiError(400, 'File exceeds 5 MB limit');
+  }
+  if (!ALLOWED_CATEGORIES.includes(category || 'general')) {
+    throw new ApiError(400, 'Invalid document category');
+  }
+
+  const result = await pool.query(
+    `INSERT INTO patient_documents (patient_id, file_name, file_type, file_size, category, notes, file_data)
+     VALUES ($1, $2, $3, $4, $5, $6, $7)
+     RETURNING id, patient_id, file_name, file_type, file_size, category, notes, uploaded_at`,
+    [patientId, file_name, file_type, rawSize, category || 'general', notes || null, file_data]
+  );
+  return result.rows[0];
+}
+
+async function listDocuments(patientId) {
+  await getPatientById(patientId); // ensure patient exists
+  const result = await pool.query(
+    `SELECT id, patient_id, file_name, file_type, file_size, category, notes, uploaded_at
+     FROM patient_documents WHERE patient_id = $1
+     ORDER BY uploaded_at DESC`,
+    [patientId]
+  );
+  return result.rows;
+}
+
+async function getDocument(documentId) {
+  const result = await pool.query(
+    `SELECT id, patient_id, file_name, file_type, file_size, category, notes, file_data, uploaded_at
+     FROM patient_documents WHERE id = $1`,
+    [documentId]
+  );
+  if (result.rows.length === 0) throw new ApiError(404, 'Document not found');
+  return result.rows[0];
+}
+
+async function deleteDocument(documentId, patientId) {
+  const result = await pool.query(
+    `DELETE FROM patient_documents WHERE id = $1 AND patient_id = $2 RETURNING id`,
+    [documentId, patientId]
+  );
+  if (result.rows.length === 0) throw new ApiError(404, 'Document not found or not yours');
+  return { deleted: true };
 }
 
 module.exports = {
@@ -140,4 +195,8 @@ module.exports = {
   getQueueHistory,
   getAppointmentHistory,
   getPatientIdByUserId,
+  uploadDocument,
+  listDocuments,
+  getDocument,
+  deleteDocument,
 };

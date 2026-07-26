@@ -40,3 +40,25 @@ export async function updatePatientProfile(patientId, payload) {
   const { data } = await apiClient.patch(`patients/${patientId}`, payload);
   return data;
 }
+
+// ──────────── Document Uploads ────────────
+
+export async function uploadPatientDocument(patientId, payload) {
+  const { data } = await apiClient.post(`patients/${patientId}/documents`, payload);
+  return data;
+}
+
+export async function listPatientDocuments(patientId) {
+  const { data } = await apiClient.get(`patients/${patientId}/documents`);
+  return data;
+}
+
+export async function getPatientDocument(docId) {
+  const { data } = await apiClient.get(`patients/documents/${docId}`);
+  return data;
+}
+
+export async function deletePatientDocument(patientId, docId) {
+  const { data } = await apiClient.delete(`patients/${patientId}/documents/${docId}`);
+  return data;
+}

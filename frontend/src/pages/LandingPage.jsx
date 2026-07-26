@@ -1,191 +1,130 @@
 import { Link } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import { ArrowRight, Activity, Clock, ShieldCheck, Star } from 'lucide-react';
+import { Activity, Calendar, Clock, HeartPulse, Shield, Smartphone, Zap } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 export default function LandingPage() {
-  const { isAuthenticated } = useAuth();
-
   return (
-    <div className="min-h-screen bg-surface flex flex-col font-sans">
-      {/* Navigation */}
-      <nav className="fixed w-full z-50 bg-white/80 backdrop-blur-xl border-b border-slate-200/50 shadow-sm transition-all duration-300">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-20">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-500 to-medical-500 flex items-center justify-center shadow-lg shadow-brand-500/20">
-                <Activity className="text-white w-6 h-6" />
-              </div>
-              <span className="font-display font-bold text-2xl tracking-tight text-dark">
-                Q-Care <span className="text-brand-500">Hospital</span>
-              </span>
+    <div className="min-h-screen bg-slate-50 flex flex-col font-sans selection:bg-indigo-200 selection:text-indigo-900 overflow-x-hidden">
+      {/* Header */}
+      <header className="bg-white/70 backdrop-blur-xl border-b border-white/60 sticky top-0 z-50 transition-all duration-300">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <div className="bg-gradient-to-br from-indigo-500 to-violet-600 p-2.5 rounded-xl shadow-lg shadow-indigo-500/30">
+              <img src="/logo.jpg" alt="Q-Care" className="h-7 w-7 rounded-md" />
             </div>
-            
-            <div className="hidden md:flex items-center space-x-8">
-              <a href="#services" className="text-slate-600 hover:text-brand-600 font-medium transition-colors">Services</a>
-              <a href="#specialists" className="text-slate-600 hover:text-brand-600 font-medium transition-colors">Specialists</a>
-              <a href="#reviews" className="text-slate-600 hover:text-brand-600 font-medium transition-colors">Testimonials</a>
-            </div>
-
-            <div className="flex items-center space-x-4">
-              {isAuthenticated ? (
-                <Link to="/dashboard" className="btn-premium">
-                  Go to Dashboard <ArrowRight className="ml-2 w-4 h-4" />
-                </Link>
-              ) : (
-                <>
-                  <Link to="/login" className="hidden md:inline-flex text-brand-700 font-medium hover:text-brand-800 transition-colors">
-                    Sign In
-                  </Link>
-                  <Link to="/register" className="btn-premium">
-                    Book Appointment
-                  </Link>
-                </>
-              )}
-            </div>
+            <span className="text-2xl font-display font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-teal-500">
+              Q-Care
+            </span>
+          </div>
+          <div className="flex items-center space-x-6">
+            <Link to="/doctors" className="hidden md:block text-sm font-medium text-slate-600 hover:text-indigo-600 transition-colors">
+              Find Doctors
+            </Link>
+            <Link to="/login" className="btn-premium">
+              Sign In
+            </Link>
           </div>
         </div>
-      </nav>
+      </header>
 
-      {/* Hero Section */}
-      <div className="relative pt-32 pb-20 lg:pt-48 lg:pb-32 overflow-hidden">
-        {/* Background Decorative Elements */}
-        <div className="absolute top-0 left-0 w-full h-full overflow-hidden -z-10">
-          <div className="absolute -top-40 -right-40 w-96 h-96 rounded-full bg-brand-300/20 blur-3xl animate-pulse-slow"></div>
-          <div className="absolute top-40 -left-20 w-72 h-72 rounded-full bg-medical-300/20 blur-3xl animate-pulse-slow" style={{ animationDelay: '2s' }}></div>
-        </div>
+      <main className="flex-grow">
+        {/* Hero Section */}
+        <div className="relative pt-24 pb-32 overflow-hidden">
+          {/* Animated Background */}
+          <div className="absolute inset-0 z-0">
+             <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-indigo-300/20 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-pulse" />
+             <div className="absolute top-1/4 right-1/4 w-[400px] h-[400px] bg-teal-300/20 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-pulse" style={{ animationDelay: '2s' }} />
+             <div className="absolute -bottom-32 left-1/2 w-[600px] h-[600px] bg-violet-300/20 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-pulse" style={{ animationDelay: '4s' }} />
+          </div>
 
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-          <div className="grid lg:grid-cols-2 gap-12 lg:gap-8 items-center">
-            
-            {/* Left Content */}
-            <div className="max-w-2xl animate-fade-in-up">
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-brand-50 border border-brand-100 text-brand-700 text-sm font-semibold mb-6">
-                <span className="w-2 h-2 rounded-full bg-medical-500 animate-pulse"></span>
-                Voted #1 Healthcare Platform 2026
-              </div>
-              <h1 className="text-5xl lg:text-7xl font-bold leading-tight mb-6">
-                Premium Healthcare, <br />
-                <span className="text-gradient">Zero Waiting Time.</span>
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center">
+            <motion.div 
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8 }}
+            >
+              <h1 className="text-5xl md:text-7xl font-display font-extrabold text-slate-900 tracking-tight leading-tight mb-8">
+                Healthcare management, <br className="hidden md:block" />
+                <span className="text-gradient">reimagined.</span>
               </h1>
-              <p className="text-lg lg:text-xl text-slate-600 mb-8 leading-relaxed max-w-xl">
-                Experience world-class medical care with our advanced digital queue system. Book top specialists, track your turn live, and access your digital medical records instantly.
+              <p className="mt-6 text-xl text-slate-600 max-w-2xl mx-auto leading-relaxed">
+                Skip the waiting room. Book appointments, pay instantly, and track your queue position in real-time from your phone.
               </p>
               
-              <div className="flex flex-col sm:flex-row gap-4">
-                <Link to="/register" className="btn-premium py-4 px-8 text-lg w-full sm:w-auto">
-                  Book an Appointment <ArrowRight className="ml-2 w-5 h-5" />
+              <div className="mt-12 flex flex-col sm:flex-row justify-center items-center space-y-4 sm:space-y-0 sm:space-x-6">
+                <Link to="/login" className="btn-premium text-lg px-8 py-4 w-full sm:w-auto">
+                  Get Started Now
                 </Link>
-                <Link to="/doctors" className="btn-secondary py-4 px-8 text-lg w-full sm:w-auto">
-                  View Specialists
+                <Link to="/doctors" className="btn-secondary text-lg px-8 py-4 w-full sm:w-auto">
+                  View Our Doctors
                 </Link>
               </div>
-              
-              <div className="mt-10 flex items-center gap-6 text-sm text-slate-500 font-medium">
-                <div className="flex items-center gap-2">
-                  <ShieldCheck className="text-medical-500 w-5 h-5" /> Highly Secure EMR
-                </div>
-                <div className="flex items-center gap-2">
-                  <Clock className="text-brand-500 w-5 h-5" /> Live Queue Tracking
-                </div>
-              </div>
-            </div>
-
-            {/* Right Image/Mockup */}
-            <div className="relative lg:ml-auto animate-fade-in-right">
-              <div className="relative rounded-3xl overflow-hidden shadow-2xl shadow-brand-900/20 border-8 border-white/50 bg-white transform rotate-2 hover:rotate-0 transition-transform duration-500">
-                <img 
-                  src="/hero-image.png" 
-                  alt="Modern Hospital Building" 
-                  className="w-full h-auto object-cover"
-                />
-                
-                {/* Floating Glass UI Elements */}
-                <div className="absolute -left-6 bottom-12 glass-panel p-4 flex items-center gap-4 animate-float">
-                  <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center">
-                    <Star className="text-green-600 w-6 h-6 fill-green-600" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-bold text-dark">4.9/5 Rating</p>
-                    <p className="text-xs text-slate-500">From 10,000+ Patients</p>
-                  </div>
-                </div>
-                
-                <div className="absolute -right-8 top-12 glass-panel p-4 flex items-center gap-4 animate-float" style={{ animationDelay: '1.5s' }}>
-                  <div className="w-12 h-12 rounded-full bg-brand-100 flex items-center justify-center">
-                    <Activity className="text-brand-600 w-6 h-6" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-bold text-dark">Dr. Sarah Jenkins</p>
-                    <p className="text-xs text-brand-600 font-medium">Available Now</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
+            </motion.div>
           </div>
         </div>
-      </div>
 
-      {/* Services Section */}
-      <section id="services" className="py-24 bg-white relative">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-3xl mx-auto mb-16">
-            <h2 className="text-3xl md:text-5xl font-bold mb-6">World-Class Medical <span className="text-brand-600">Services</span></h2>
-            <p className="text-lg text-slate-600">From preventive care to complex surgeries, our state-of-the-art facility is equipped to handle all your healthcare needs.</p>
-          </div>
-          
-          <div className="grid md:grid-cols-3 gap-8">
-            {[
-              { title: 'Cardiology', desc: 'Advanced heart care with top-tier specialists.', icon: '🫀', color: 'bg-red-50 text-red-600' },
-              { title: 'Neurology', desc: 'Comprehensive brain and nervous system treatments.', icon: '🧠', color: 'bg-indigo-50 text-indigo-600' },
-              { title: 'Pediatrics', desc: 'Gentle, expert care for infants, children, and teens.', icon: '👶', color: 'bg-teal-50 text-teal-600' },
-              { title: 'Orthopedics', desc: 'Specialized bone, joint, and muscle care.', icon: '🦴', color: 'bg-orange-50 text-orange-600' },
-              { title: 'Dermatology', desc: 'Advanced skin, hair, and nail treatments.', icon: '✨', color: 'bg-pink-50 text-pink-600' },
-              { title: 'General Medicine', desc: 'Primary care for overall health and wellness.', icon: '🩺', color: 'bg-blue-50 text-blue-600' }
-            ].map((service, i) => (
-              <div key={i} className="glass-card p-8 group hover:-translate-y-2 cursor-pointer">
-                <div className={`w-16 h-16 rounded-2xl ${service.color} flex items-center justify-center text-3xl mb-6 group-hover:scale-110 transition-transform`}>
-                  {service.icon}
-                </div>
-                <h3 className="text-xl font-bold mb-3">{service.title}</h3>
-                <p className="text-slate-600">{service.desc}</p>
-              </div>
-            ))}
+        {/* Feature Grid */}
+        <div className="py-24 bg-white relative">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+            <div className="text-center mb-20">
+              <h2 className="text-3xl font-display font-bold text-slate-900 mb-4">Why choose Q-Care?</h2>
+              <p className="text-slate-500 max-w-2xl mx-auto">Experience a hospital visit where everything is transparent, efficient, and built around your convenience.</p>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              {[
+                { icon: Clock, title: "Live Queue Tracking", desc: "Never ask 'how much longer?' again. See your exact position in real-time." },
+                { icon: Zap, title: "Instant Payments", desc: "Pay your consultation fees securely online via Razorpay before you arrive." },
+                { icon: Smartphone, title: "100% Mobile Ready", desc: "Access all features from your phone without downloading any app." },
+                { icon: Shield, title: "Secure Records", desc: "Your medical history and prescriptions are stored with military-grade encryption." },
+                { icon: Calendar, title: "Smart Scheduling", desc: "Our AI prevents overbooking, ensuring doctors spend quality time with you." },
+                { icon: HeartPulse, title: "Better Care", desc: "By removing administrative friction, doctors can focus entirely on your health." }
+              ].map((feature, i) => (
+                <motion.div 
+                  key={feature.title}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true, margin: "-100px" }}
+                  transition={{ delay: i * 0.1, duration: 0.5 }}
+                  className="glass-card p-8 group"
+                >
+                  <div className="w-14 h-14 bg-indigo-50 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
+                    <feature.icon className="h-7 w-7 text-indigo-600" />
+                  </div>
+                  <h3 className="text-xl font-bold text-slate-900 mb-3">{feature.title}</h3>
+                  <p className="text-slate-500 leading-relaxed">{feature.desc}</p>
+                </motion.div>
+              ))}
+            </div>
           </div>
         </div>
-      </section>
-      
+
+        {/* CTA Section */}
+        <div className="bg-gradient-to-br from-indigo-900 via-violet-900 to-indigo-900 py-24 relative overflow-hidden">
+           <div className="absolute inset-0">
+             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-indigo-500/20 rounded-full blur-3xl" />
+           </div>
+           
+           <div className="max-w-4xl mx-auto px-4 relative z-10 text-center">
+              <h2 className="text-4xl font-display font-bold text-white mb-6">Ready to transform your healthcare experience?</h2>
+              <p className="text-xl text-indigo-200 mb-10">Join thousands of patients who have already switched to the smarter way of visiting hospitals.</p>
+              <Link to="/login" className="inline-flex items-center justify-center px-8 py-4 rounded-full font-bold text-indigo-900 bg-white hover:bg-indigo-50 shadow-xl shadow-white/10 transition-all duration-300 transform hover:scale-105">
+                Sign in with Google
+              </Link>
+           </div>
+        </div>
+      </main>
+
       {/* Footer */}
-      <footer className="bg-dark text-slate-300 py-12 mt-auto">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid md:grid-cols-4 gap-8">
-          <div className="col-span-2">
-            <div className="flex items-center gap-3 mb-6">
-              <Activity className="text-brand-500 w-8 h-8" />
-              <span className="font-display font-bold text-2xl text-white">Q-Care Hospital</span>
-            </div>
-            <p className="text-sm text-slate-400 max-w-md">
-              A premium, intelligent healthcare platform designed to minimize wait times and maximize patient care. Providing world-class medical services since 2026.
-            </p>
+      <footer className="bg-slate-50 border-t border-slate-200 py-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center">
+          <div className="flex items-center space-x-3 mb-4 md:mb-0">
+            <Activity className="h-6 w-6 text-indigo-600" />
+            <span className="text-xl font-display font-bold text-slate-900">Q-Care</span>
           </div>
-          <div>
-            <h4 className="text-white font-bold mb-4">Quick Links</h4>
-            <ul className="space-y-2 text-sm">
-              <li><Link to="/doctors" className="hover:text-brand-400 transition-colors">Find a Doctor</Link></li>
-              <li><Link to="/book" className="hover:text-brand-400 transition-colors">Book Appointment</Link></li>
-              <li><Link to="/login" className="hover:text-brand-400 transition-colors">Patient Login</Link></li>
-            </ul>
-          </div>
-          <div>
-            <h4 className="text-white font-bold mb-4">Contact Us</h4>
-            <ul className="space-y-2 text-sm">
-              <li>Emergency: 911</li>
-              <li>Support: 1-800-QCARE</li>
-              <li>hello@qcarehospital.com</li>
-            </ul>
-          </div>
-        </div>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-12 pt-8 border-t border-slate-800 text-center text-sm text-slate-500">
-          &copy; {new Date().getFullYear()} Q-Care Hospital Management System. All rights reserved.
+          <p className="text-slate-500 text-sm">
+            © {new Date().getFullYear()} Q-Care Health Systems. All rights reserved.
+          </p>
         </div>
       </footer>
     </div>

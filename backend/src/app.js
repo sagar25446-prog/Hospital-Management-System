@@ -15,6 +15,7 @@ const appointmentRoutes = require('./modules/appointments/appointment.routes');
 const adminRoutes = require('./modules/admin/admin.routes');
 const paymentRoutes = require('./modules/payments/payment.routes');
 const emrRoutes = require('./modules/emr/emr.routes');
+const hospitalRoutes = require('./modules/hospitals/hospital.routes');
 const { errorHandler } = require('./middleware/errorHandler');
 
 const app = express();
@@ -88,6 +89,7 @@ app.use('/api/v1/appointments', apiLimiter, appointmentRoutes);
 app.use('/api/v1/admin', apiLimiter, adminRoutes);
 app.use('/api/v1/payments', apiLimiter, paymentRoutes);
 app.use('/api/v1/emr', apiLimiter, emrRoutes);
+app.use('/api/v1/hospitals', apiLimiter, hospitalRoutes);
 
 app.use(errorHandler);
 

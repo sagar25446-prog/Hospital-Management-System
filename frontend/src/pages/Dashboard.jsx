@@ -158,6 +158,51 @@ function PatientDashboardContent() {
 
       {error && <ErrorMessage message={error} />}
 
+      {/* ===== Quick Actions ===== */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <Link
+          to="/hospitals"
+          className="group flex items-center gap-4 p-5 bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-lg hover:border-brand-200 transition-all hover:-translate-y-0.5"
+        >
+          <div className="h-12 w-12 shrink-0 rounded-xl bg-gradient-to-br from-brand-500 to-brand-600 flex items-center justify-center text-white shadow-md shadow-brand-500/20">
+            <Search className="h-6 w-6" />
+          </div>
+          <div>
+            <p className="font-bold text-slate-900 group-hover:text-brand-700 transition-colors">Find Hospitals</p>
+            <p className="text-xs text-slate-500">Search & filter 30+ top hospitals</p>
+          </div>
+          <ChevronRight className="h-5 w-5 text-slate-300 ml-auto group-hover:text-brand-500 transition-colors" />
+        </Link>
+
+        <Link
+          to="/hospitals"
+          className="group flex items-center gap-4 p-5 bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-lg hover:border-medical-200 transition-all hover:-translate-y-0.5"
+        >
+          <div className="h-12 w-12 shrink-0 rounded-xl bg-gradient-to-br from-medical-500 to-medical-600 flex items-center justify-center text-white shadow-md shadow-medical-500/20">
+            <CalendarPlus className="h-6 w-6" />
+          </div>
+          <div>
+            <p className="font-bold text-slate-900 group-hover:text-medical-700 transition-colors">Book Appointment</p>
+            <p className="text-xs text-slate-500">Pick a doctor & book instantly</p>
+          </div>
+          <ChevronRight className="h-5 w-5 text-slate-300 ml-auto group-hover:text-medical-500 transition-colors" />
+        </Link>
+
+        <Link
+          to="/medical-records"
+          className="group flex items-center gap-4 p-5 bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-lg hover:border-amber-200 transition-all hover:-translate-y-0.5"
+        >
+          <div className="h-12 w-12 shrink-0 rounded-xl bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center text-white shadow-md shadow-amber-500/20">
+            <FileText className="h-6 w-6" />
+          </div>
+          <div>
+            <p className="font-bold text-slate-900 group-hover:text-amber-700 transition-colors">Medical Records</p>
+            <p className="text-xs text-slate-500">View reports & prescriptions</p>
+          </div>
+          <ChevronRight className="h-5 w-5 text-slate-300 ml-auto group-hover:text-amber-500 transition-colors" />
+        </Link>
+      </div>
+
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
         <h2 className="flex items-center text-sm font-bold text-gray-500 uppercase tracking-widest mb-4">
           <Activity className="h-4 w-4 mr-2" /> Live Status
@@ -708,15 +753,18 @@ function Dashboard() {
       </div>
     );
   }
-
   const role = user?.role;
 
   return (
-    <div className="min-h-screen bg-surface relative overflow-hidden font-sans">
-      {/* Decorative gradient header background */}
-      <div className="absolute top-0 left-0 w-full h-[500px] bg-gradient-premium opacity-60 pointer-events-none z-0"></div>
-      
-      <header className="relative z-10 px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between glass-panel mx-4 mt-4 mb-8">
+    <div className="min-h-screen bg-gradient-premium relative overflow-hidden font-sans">
+      {/* Animated Background */}
+      <div className="absolute inset-0 z-0 pointer-events-none">
+        <div className="premium-blur bg-indigo-300/30 w-[600px] h-[600px] top-[-10%] left-[-10%]" />
+        <div className="premium-blur bg-teal-300/30 w-[500px] h-[500px] bottom-[-20%] right-[-10%]" style={{ animationDelay: '2s' }} />
+      </div>
+
+      {/* Header */}
+      <header className="bg-white/70 backdrop-blur-xl border-b border-white/60 sticky top-0 z-50 flex items-center justify-between glass-panel mx-4 mt-4 mb-8">
         <div className="flex items-center space-x-3">
            <div className="h-10 w-10 bg-gradient-to-br from-brand-600 to-medical-500 rounded-xl flex items-center justify-center text-white shadow-lg shadow-brand-500/30">
              <Activity className="h-6 w-6" />
