@@ -8,7 +8,7 @@ import LandingPage from '../pages/LandingPage';
 import LoginPage from '../pages/LoginPage';
 import OnboardingPage from '../pages/OnboardingPage';
 
-// Lazy: everything else loads on demand (948KB → ~400KB initial bundle)
+// Lazy: everything else loads on demand
 const Dashboard = lazy(() => import('../pages/Dashboard'));
 const QueuePage = lazy(() => import('../pages/QueuePage'));
 const DoctorQueuePage = lazy(() => import('../pages/DoctorQueuePage'));
@@ -51,19 +51,12 @@ function AppRouter() {
     );
   }
 
-  // Role-based home redirect for authenticated users
-  function RoleHome() {
-    const role = user?.role;
-    if (role === 'doctor') return <Navigate to="/doctor/queue" replace />;
-    return <Dashboard />;
-  }
-
   return (
     <Suspense fallback={<RouteFallback />}>
     <Routes>
       {/* Public Landing Page & Auth */}
-      <Route path="/" element={isAuthenticated ? <RoleHome /> : <LandingPage />} />
-      <Route path="/login" element={isAuthenticated ? <Navigate to="/" replace /> : <LoginPage />} />
+      <Route path="/" element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <LandingPage />} />
+      <Route path="/login" element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <LoginPage />} />
       <Route path="/onboarding" element={isAuthenticated ? <OnboardingPage /> : <Navigate to="/login" replace />} />
 
       {/* Public: anyone can view doctors list and individual queues */}
@@ -75,11 +68,16 @@ function AppRouter() {
       <Route path="/symptom-checker" element={<SymptomCheckerPage />} />
       <Route path="/emergency" element={<EmergencyPage />} />
 
-      {/* Routes with AppLayout (Global Navigation) */}
+      {/* ── All authenticated routes go through AppLayout (shared nav + footer) ── */}
       <Route element={<AppLayout />}>
         
-        <Route path="/dashboard" element={<Navigate to="/" replace />} />
-        
+        {/* Dashboard — the main authenticated home */}
+        <Route path="/dashboard" element={
+          <ProtectedRoute allowedRoles={['patient', 'admin', 'reception', 'doctor']}>
+            <Dashboard />
+          </ProtectedRoute>
+        } />
+
         {/* Hospitals Directory */}
         <Route path="/hospitals" element={<HospitalsPage />} />
         <Route path="/hospital/:id" element={<HospitalDetailsPage />} />

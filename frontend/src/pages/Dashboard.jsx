@@ -159,47 +159,60 @@ function PatientDashboardContent() {
       {error && <ErrorMessage message={error} />}
 
       {/* ===== Quick Actions ===== */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
         <Link
           to="/hospitals"
-          className="group flex items-center gap-4 p-5 bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-lg hover:border-brand-200 transition-all hover:-translate-y-0.5"
+          className="group flex flex-col items-center gap-2 p-4 bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-lg hover:border-brand-200 transition-all hover:-translate-y-0.5 text-center"
         >
-          <div className="h-12 w-12 shrink-0 rounded-xl bg-gradient-to-br from-brand-500 to-brand-600 flex items-center justify-center text-white shadow-md shadow-brand-500/20">
+          <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-brand-500 to-brand-600 flex items-center justify-center text-white shadow-md shadow-brand-500/20">
             <Search className="h-6 w-6" />
           </div>
-          <div>
-            <p className="font-bold text-slate-900 group-hover:text-brand-700 transition-colors">Find Hospitals</p>
-            <p className="text-xs text-slate-500">Search & filter 30+ top hospitals</p>
-          </div>
-          <ChevronRight className="h-5 w-5 text-slate-300 ml-auto group-hover:text-brand-500 transition-colors" />
+          <p className="font-bold text-slate-900 text-sm group-hover:text-brand-700 transition-colors">Find Hospitals</p>
+          <p className="text-xs text-slate-400">30+ top hospitals</p>
         </Link>
 
         <Link
           to="/hospitals"
-          className="group flex items-center gap-4 p-5 bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-lg hover:border-medical-200 transition-all hover:-translate-y-0.5"
+          className="group flex flex-col items-center gap-2 p-4 bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-lg hover:border-medical-200 transition-all hover:-translate-y-0.5 text-center"
         >
-          <div className="h-12 w-12 shrink-0 rounded-xl bg-gradient-to-br from-medical-500 to-medical-600 flex items-center justify-center text-white shadow-md shadow-medical-500/20">
+          <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-medical-500 to-medical-600 flex items-center justify-center text-white shadow-md shadow-medical-500/20">
             <CalendarPlus className="h-6 w-6" />
           </div>
-          <div>
-            <p className="font-bold text-slate-900 group-hover:text-medical-700 transition-colors">Book Appointment</p>
-            <p className="text-xs text-slate-500">Pick a doctor & book instantly</p>
+          <p className="font-bold text-slate-900 text-sm group-hover:text-medical-700 transition-colors">Book Appointment</p>
+          <p className="text-xs text-slate-400">Pick & book instantly</p>
+        </Link>
+
+        <Link
+          to="/symptom-checker"
+          className="group flex flex-col items-center gap-2 p-4 bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-lg hover:border-purple-200 transition-all hover:-translate-y-0.5 text-center"
+        >
+          <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center text-white shadow-md shadow-purple-500/20">
+            <Stethoscope className="h-6 w-6" />
           </div>
-          <ChevronRight className="h-5 w-5 text-slate-300 ml-auto group-hover:text-medical-500 transition-colors" />
+          <p className="font-bold text-slate-900 text-sm group-hover:text-purple-700 transition-colors">Symptom Checker</p>
+          <p className="text-xs text-slate-400">Find right specialist</p>
         </Link>
 
         <Link
           to="/medical-records"
-          className="group flex items-center gap-4 p-5 bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-lg hover:border-amber-200 transition-all hover:-translate-y-0.5"
+          className="group flex flex-col items-center gap-2 p-4 bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-lg hover:border-amber-200 transition-all hover:-translate-y-0.5 text-center"
         >
-          <div className="h-12 w-12 shrink-0 rounded-xl bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center text-white shadow-md shadow-amber-500/20">
+          <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center text-white shadow-md shadow-amber-500/20">
             <FileText className="h-6 w-6" />
           </div>
-          <div>
-            <p className="font-bold text-slate-900 group-hover:text-amber-700 transition-colors">Medical Records</p>
-            <p className="text-xs text-slate-500">View reports & prescriptions</p>
+          <p className="font-bold text-slate-900 text-sm group-hover:text-amber-700 transition-colors">Medical Records</p>
+          <p className="text-xs text-slate-400">Reports & prescriptions</p>
+        </Link>
+
+        <Link
+          to="/emergency"
+          className="group flex flex-col items-center gap-2 p-4 bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-lg hover:border-red-200 transition-all hover:-translate-y-0.5 text-center"
+        >
+          <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-red-500 to-red-600 flex items-center justify-center text-white shadow-md shadow-red-500/20">
+            <BellRing className="h-6 w-6" />
           </div>
-          <ChevronRight className="h-5 w-5 text-slate-300 ml-auto group-hover:text-amber-500 transition-colors" />
+          <p className="font-bold text-slate-900 text-sm group-hover:text-red-700 transition-colors">Emergency</p>
+          <p className="text-xs text-slate-400">Call 108 / First Aid</p>
         </Link>
       </div>
 
@@ -743,11 +756,11 @@ function ReceptionStaffPanel() {
 }
 
 function Dashboard() {
-  const { user, loading, logout } = useAuth();
+  const { user, loading } = useAuth();
   
   if (loading) {
     return (
-      <div className="min-h-screen bg-surface flex flex-col items-center justify-center">
+      <div className="min-h-[60vh] flex flex-col items-center justify-center">
         <Activity className="h-10 w-10 text-brand-500 animate-spin mb-4" />
         <p className="text-slate-500 font-medium">Loading your profile...</p>
       </div>
@@ -756,73 +769,18 @@ function Dashboard() {
   const role = user?.role;
 
   return (
-    <div className="min-h-screen bg-gradient-premium relative overflow-hidden font-sans">
-      {/* Animated Background */}
-      <div className="absolute inset-0 z-0 pointer-events-none">
-        <div className="premium-blur bg-indigo-300/30 w-[600px] h-[600px] top-[-10%] left-[-10%]" />
-        <div className="premium-blur bg-teal-300/30 w-[500px] h-[500px] bottom-[-20%] right-[-10%]" style={{ animationDelay: '2s' }} />
-      </div>
-
-      {/* Header */}
-      <header className="bg-white/70 backdrop-blur-xl border-b border-white/60 sticky top-0 z-50 flex items-center justify-between glass-panel mx-4 mt-4 mb-8">
-        <div className="flex items-center space-x-3">
-           <div className="h-10 w-10 bg-gradient-to-br from-brand-600 to-medical-500 rounded-xl flex items-center justify-center text-white shadow-lg shadow-brand-500/30">
-             <Activity className="h-6 w-6" />
-           </div>
-           <span className="font-display font-bold text-2xl text-dark tracking-tight">Q-Care</span>
+    <div className="px-4 sm:px-6 lg:px-8 relative z-10 max-w-7xl mx-auto py-4">
+      {role === 'patient' && <PatientDashboardContent />}
+      {role === 'admin' && <AdminDashboardContent />}
+      {role === 'reception' && <ReceptionDashboardContent />}
+      {role === 'doctor' && <Navigate to="/doctor/queue" replace />}
+      {!role && (
+        <div className="flex flex-col items-center justify-center py-20 text-center glass-card max-w-md mx-auto">
+           <Activity className="h-16 w-16 text-brand-300 mb-6" />
+           <p className="text-slate-800 font-bold text-xl mb-2">Account Unrecognized</p>
+           <p className="text-slate-500">Please try logging in again to access the portal.</p>
         </div>
-        <div className="flex items-center gap-3">
-          {role === 'patient' && (
-            <>
-              <Link
-                to="/medical-records"
-                className="hidden sm:inline-flex items-center gap-1.5 text-sm font-semibold text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 px-5 py-2 rounded-full transition-all shadow-sm"
-              >
-                <FileText className="h-4 w-4 text-brand-500" />
-                Medical Records
-              </Link>
-              <Link
-                to="/book"
-                className="hidden sm:inline-flex items-center gap-1.5 text-sm font-semibold text-white bg-gradient-to-r from-brand-600 to-medical-500 hover:from-brand-500 hover:to-medical-400 px-5 py-2 rounded-full transition-all shadow-md shadow-brand-500/20"
-              >
-                <CalendarPlus className="h-4 w-4" />
-                Book Appointment
-              </Link>
-            </>
-          )}
-          <div className="flex items-center space-x-3 bg-white border border-slate-200 rounded-full px-4 py-2 shadow-sm">
-             <div className="w-2.5 h-2.5 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)] animate-pulse" />
-             <span className="text-sm font-semibold text-dark capitalize">{role} Account</span>
-             {role === 'patient' && (
-               <Link to="/profile" className="text-xs ml-2 text-brand-600 hover:text-brand-800 font-medium border-l border-slate-200 pl-3">
-                 Profile
-               </Link>
-             )}
-          </div>
-          <button
-            onClick={logout}
-            className="flex items-center gap-1.5 text-sm font-medium text-slate-500 hover:text-red-600 bg-white border border-slate-200 hover:border-red-100 px-4 py-2 rounded-full shadow-sm transition-colors"
-            title="Sign out"
-          >
-            <LogOut className="h-4 w-4" />
-            <span className="hidden sm:inline">Sign out</span>
-          </button>
-        </div>
-      </header>
-      
-      <main className="px-4 sm:px-6 lg:px-8 relative z-10 max-w-7xl mx-auto">
-        {role === 'patient' && <PatientDashboardContent />}
-        {role === 'admin' && <AdminDashboardContent />}
-        {role === 'reception' && <ReceptionDashboardContent />}
-        {role === 'doctor' && <Navigate to="/doctor/queue" replace />}
-        {!role && (
-          <div className="flex flex-col items-center justify-center py-20 text-center glass-card max-w-md mx-auto">
-             <Activity className="h-16 w-16 text-brand-300 mb-6" />
-             <p className="text-slate-800 font-bold text-xl mb-2">Account Unrecognized</p>
-             <p className="text-slate-500">Please try logging in again to access the portal.</p>
-          </div>
-        )}
-      </main>
+      )}
     </div>
   );
 }
