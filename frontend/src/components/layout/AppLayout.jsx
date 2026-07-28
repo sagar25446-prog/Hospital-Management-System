@@ -4,7 +4,8 @@ import { useAuth } from '../../context/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   LayoutDashboard, Activity, CalendarPlus, FileText, 
-  User, LogOut, Menu, X, ChevronRight, Building2, Search
+  User, LogOut, Menu, X, ChevronRight, Building2, Search,
+  Stethoscope, AlertTriangle
 } from 'lucide-react';
 
 export default function AppLayout() {
@@ -23,7 +24,9 @@ export default function AppLayout() {
     if (role === 'patient') {
       return [
         { name: 'Find Hospitals', path: '/hospitals', icon: Search },
+        { name: 'Symptom Checker', path: '/symptom-checker', icon: Stethoscope },
         { name: 'Medical Records', path: '/medical-records', icon: FileText },
+        { name: 'Emergency', path: '/emergency', icon: AlertTriangle },
       ];
     } else if (role === 'doctor') {
       return [
@@ -35,6 +38,7 @@ export default function AppLayout() {
         { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
         { name: 'Hospitals', path: '/hospitals', icon: Building2 },
         { name: 'Doctors', path: '/doctors', icon: User },
+        { name: 'Symptom Checker', path: '/symptom-checker', icon: Stethoscope },
       ];
     }
     return [];

@@ -16,10 +16,12 @@
     "framer-motion": "^12.36.0",
     "jspdf": "^4.2.1",
     "jspdf-autotable": "^5.0.8",
+    "leaflet": "^1.9.4",
     "lucide-react": "^0.577.0",
     "qrcode.react": "^4.2.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
+    "react-leaflet": "^4.2.1",
     "react-router-dom": "^6.28.0",
     "tailwind-merge": "^3.5.0"
   },

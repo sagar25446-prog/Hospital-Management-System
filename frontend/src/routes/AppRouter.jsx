@@ -1,24 +1,41 @@
+import { Suspense, lazy } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import ProtectedRoute from '../components/auth/ProtectedRoute';
+
+// Eager: landing + auth (first things a visitor sees)
+import LandingPage from '../pages/LandingPage';
 import LoginPage from '../pages/LoginPage';
 import OnboardingPage from '../pages/OnboardingPage';
-import Dashboard from '../pages/Dashboard';
-import QueuePage from '../pages/QueuePage';
-import DoctorQueuePage from '../pages/DoctorQueuePage';
-import DoctorsPage from '../pages/DoctorsPage';
-import DisplayQueuePage from '../pages/DisplayQueuePage';
-import BookAppointmentPage from '../pages/BookAppointmentPage';
-import DoctorProfilePage from '../pages/DoctorProfilePage';
-import PatientProfilePage from '../pages/PatientProfilePage';
-import MedicalRecordsPage from '../pages/MedicalRecordsPage';
-import HospitalsPage from '../pages/HospitalsPage';
-import HospitalDetailsPage from '../pages/HospitalDetailsPage';
-import NotFoundPage from '../pages/NotFoundPage';
 
-import LandingPage from '../pages/LandingPage';
+// Lazy: everything else loads on demand (948KB → ~400KB initial bundle)
+const Dashboard = lazy(() => import('../pages/Dashboard'));
+const QueuePage = lazy(() => import('../pages/QueuePage'));
+const DoctorQueuePage = lazy(() => import('../pages/DoctorQueuePage'));
+const DoctorsPage = lazy(() => import('../pages/DoctorsPage'));
+const DisplayQueuePage = lazy(() => import('../pages/DisplayQueuePage'));
+const BookAppointmentPage = lazy(() => import('../pages/BookAppointmentPage'));
+const DoctorProfilePage = lazy(() => import('../pages/DoctorProfilePage'));
+const PatientProfilePage = lazy(() => import('../pages/PatientProfilePage'));
+const MedicalRecordsPage = lazy(() => import('../pages/MedicalRecordsPage'));
+const HospitalsPage = lazy(() => import('../pages/HospitalsPage'));
+const HospitalDetailsPage = lazy(() => import('../pages/HospitalDetailsPage'));
+const SymptomCheckerPage = lazy(() => import('../pages/SymptomCheckerPage'));
+const EmergencyPage = lazy(() => import('../pages/EmergencyPage'));
+const NotFoundPage = lazy(() => import('../pages/NotFoundPage'));
 
 import AppLayout from '../components/layout/AppLayout';
+
+function RouteFallback() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-slate-50">
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-brand-600 mx-auto mb-3"></div>
+        <p className="text-slate-500 text-sm font-medium">Loading...</p>
+      </div>
+    </div>
+  );
+}
 
 function AppRouter() {
   const { isAuthenticated, loading, user } = useAuth();
@@ -42,6 +59,7 @@ function AppRouter() {
   }
 
   return (
+    <Suspense fallback={<RouteFallback />}>
     <Routes>
       {/* Public Landing Page & Auth */}
       <Route path="/" element={isAuthenticated ? <RoleHome /> : <LandingPage />} />
@@ -52,6 +70,10 @@ function AppRouter() {
       <Route path="/doctors" element={<DoctorsPage />} />
       <Route path="/queue/:doctorId" element={<QueuePage />} />
       <Route path="/display/:doctorId" element={<DisplayQueuePage />} />
+
+      {/* Public: Symptom Checker & Emergency */}
+      <Route path="/symptom-checker" element={<SymptomCheckerPage />} />
+      <Route path="/emergency" element={<EmergencyPage />} />
 
       {/* Routes with AppLayout (Global Navigation) */}
       <Route element={<AppLayout />}>
@@ -114,6 +136,7 @@ function AppRouter() {
       {/* 404 Page */}
       <Route path="*" element={<NotFoundPage />} />
     </Routes>
+    </Suspense>
   );
 }
 

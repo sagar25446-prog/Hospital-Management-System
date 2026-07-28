@@ -16,6 +16,7 @@ const adminRoutes = require('./modules/admin/admin.routes');
 const paymentRoutes = require('./modules/payments/payment.routes');
 const emrRoutes = require('./modules/emr/emr.routes');
 const hospitalRoutes = require('./modules/hospitals/hospital.routes');
+const symptomCheckerRoutes = require('./modules/symptom-checker/symptomChecker.routes');
 const { errorHandler } = require('./middleware/errorHandler');
 
 const app = express();
@@ -77,6 +78,15 @@ const apiLimiter = rateLimit({
   message: { message: 'Too many requests, please slow down' },
 });
 
+// Stricter limiter for symptom checker (unauthenticated + potential LLM cost)
+const symptomCheckerLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: 'Too many requests — please wait a few minutes and try again.' },
+});
+
 // Health check (no rate limit)
 app.get('/health', (req, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }));
 
@@ -90,6 +100,7 @@ app.use('/api/v1/admin', apiLimiter, adminRoutes);
 app.use('/api/v1/payments', apiLimiter, paymentRoutes);
 app.use('/api/v1/emr', apiLimiter, emrRoutes);
 app.use('/api/v1/hospitals', apiLimiter, hospitalRoutes);
+app.use('/api/v1/symptom-checker', symptomCheckerLimiter, symptomCheckerRoutes);
 
 app.use(errorHandler);
 
