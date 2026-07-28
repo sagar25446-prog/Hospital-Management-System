@@ -149,12 +149,21 @@ export default function HospitalsPage() {
             <p className="text-slate-500 mt-4 font-medium">Searching hospitals...</p>
           </div>
         ) : hospitals.length === 0 ? (
-          <div className="py-20 text-center bg-white rounded-3xl border border-slate-200 shadow-sm max-w-2xl mx-auto">
+          <div className="py-16 text-center bg-white rounded-3xl border border-slate-200 shadow-sm max-w-2xl mx-auto px-6">
             <div className="bg-slate-50 h-24 w-24 rounded-full flex items-center justify-center mx-auto mb-6">
               <Search className="h-10 w-10 text-slate-400" />
             </div>
             <h3 className="text-2xl font-bold text-slate-800">No hospitals found</h3>
-            <p className="text-slate-500 mt-2 text-lg">We couldn't find any hospitals matching your criteria.</p>
+            <p className="text-slate-500 mt-2 text-base max-w-md mx-auto">
+              {search ? (
+                <>We couldn't find "<strong>{search}</strong>". Try a shorter name or check the spelling.</>
+              ) : (
+                'Try adjusting your filters to see more results.'
+              )}
+            </p>
+            <div className="mt-4 text-sm text-slate-400">
+              <p>💡 Try searching: <button onClick={() => setSearch('Apollo')} className="text-brand-600 hover:underline font-medium">Apollo</button>, <button onClick={() => setSearch('AIIMS')} className="text-brand-600 hover:underline font-medium">AIIMS</button>, <button onClick={() => setSearch('Fortis')} className="text-brand-600 hover:underline font-medium">Fortis</button>, <button onClick={() => setSearch('Max')} className="text-brand-600 hover:underline font-medium">Max</button>, or <button onClick={() => setSearch('Tata')} className="text-brand-600 hover:underline font-medium">Tata Memorial</button></p>
+            </div>
             <div className="mt-6 flex items-center justify-center gap-4">
               <button onClick={() => { setSearch(''); setSelectedCity(''); setSelectedSpecialty(''); }} className="btn-secondary py-2 px-6">
                 Clear All Filters

@@ -108,7 +108,7 @@ function AdminStaffManager() {
                     </div>
                   </td>
                   <td className="px-6 py-4 text-dark font-bold">
-                    ${doctor.consultation_fee ?? 0}
+                    ₹{doctor.consultation_fee ?? 0}
                   </td>
                   <td className="px-6 py-4 text-center">
                     {doctor.is_available ? (

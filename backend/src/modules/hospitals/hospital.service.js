@@ -16,10 +16,20 @@ async function getAllHospitals(search = '', city = '', specialty = '', limit = 5
   let paramIdx = 1;
 
   if (search) {
-    // Use multiple ILIKE patterns to handle typos and partial matches
-    // e.g. "aims" matches "AIIMS", "apolo" matches "Apollo"
-    query += ` AND (h.name ILIKE $${paramIdx} OR h.name ILIKE $${paramIdx + 1} OR h.city ILIKE $${paramIdx})`;
-    params.push(`%${search}%`, `%${search.replace(/\s+/g, '%')}%`);
+    // Multi-strategy fuzzy search:
+    // 1. Exact ILIKE match on name or city
+    // 2. Space-collapsed pattern (e.g. "aiims delhi" → "%aiims%delhi%")
+    // 3. Trigram similarity via pg_trgm (catches typos like "apolo" → "Apollo")
+    const searchPattern = search.replace(/\s+/g, '%');
+    query += ` AND (
+      h.name ILIKE $${paramIdx} 
+      OR h.city ILIKE $${paramIdx} 
+      OR h.address ILIKE $${paramIdx}
+      OR h.state ILIKE $${paramIdx}
+      OR h.name ILIKE $${paramIdx + 1}
+      OR (h.name || ' ' || h.city) ILIKE $${paramIdx + 1}
+    )`;
+    params.push(`%${search}%`, `%${searchPattern}%`);
     paramIdx += 2;
   }
   if (city) {

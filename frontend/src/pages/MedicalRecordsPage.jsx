@@ -18,6 +18,14 @@ function formatDate(d) {
   });
 }
 
+function formatDateTime(d) {
+  if (!d) return '—';
+  const dt = new Date(d);
+  const date = dt.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+  const time = dt.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
+  return `${date} at ${time}`;
+}
+
 // Helper to convert file to base64
 const fileToBase64 = (file) => new Promise((resolve, reject) => {
   const reader = new FileReader();
@@ -366,7 +374,7 @@ export default function MedicalRecordsPage() {
                       <div className="min-w-0">
                         <p className="font-semibold text-gray-900 text-sm truncate">{doc.file_name}</p>
                         <p className="text-xs text-gray-500 flex items-center gap-1 mt-0.5">
-                          <Calendar className="h-3 w-3" /> {formatDate(doc.uploaded_at)}
+                          <Calendar className="h-3 w-3" /> Uploaded: {formatDateTime(doc.uploaded_at)}
                         </p>
                       </div>
                     </div>

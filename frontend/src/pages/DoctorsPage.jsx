@@ -157,7 +157,7 @@ export default function DoctorsPage() {
                         <h2 className="text-xl font-display font-bold text-gray-900 group-hover:text-brand-600 transition-colors">Dr. {name}</h2>
                         <p className="text-brand-600 font-medium text-sm mt-1 mb-2">{d.specialization || 'General Practitioner'}</p>
                         {d.consultation_fee > 0 && (
-                          <p className="text-sm text-gray-500 font-semibold">Consultation: <span className="text-gray-900">${d.consultation_fee}</span></p>
+                          <p className="text-sm text-gray-500 font-semibold">Consultation: <span className="text-gray-900">₹{d.consultation_fee}</span></p>
                         )}
                         {d.qualification && (
                           <p className="text-xs text-gray-400 mt-1">{d.qualification}</p>
