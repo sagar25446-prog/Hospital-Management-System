@@ -10,7 +10,7 @@ const { OAuth2Client } = require('google-auth-library');
 const { pool } = require('../../config/database');
 const { ApiError } = require('../../utils/ApiError');
 
-const BCRYPT_ROUNDS = 10;
+const BCRYPT_ROUNDS = 12;
 const ACCESS_TOKEN_EXPIRY = '15m';
 const REFRESH_TOKEN_EXPIRY = '7d';
 

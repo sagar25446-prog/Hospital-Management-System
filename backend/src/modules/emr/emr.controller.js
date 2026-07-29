@@ -4,7 +4,9 @@ const { ApiError } = require('../../utils/ApiError');
 
 async function addPrescription(req, res, next) {
   try {
-    if (req.user.role !== 'doctor') throw new ApiError(403, 'Only doctors can write prescriptions');
+    if (req.user.role !== 'doctor') {
+      throw new ApiError(403, 'Only doctors can write prescriptions');
+    }
     
     const doctorId = await queueService.getDoctorIdByUserId(req.user.id);
     const data = { ...req.body, doctorId };
@@ -18,13 +20,19 @@ async function addPrescription(req, res, next) {
 
 async function getMyPrescriptions(req, res, next) {
   try {
-    let patientId;
+    let patientId = req.params.patientId;
+    
     if (req.user.role === 'patient') {
-      patientId = await queueService.getPatientIdByUserId(req.user.id);
-    } else {
-      patientId = req.params.patientId; // admin/doctor viewing
+      const ownId = await queueService.getPatientIdByUserId(req.user.id);
+      if (patientId && patientId !== ownId) {
+        throw new ApiError(403, 'You can only view your own prescriptions');
+      }
+      patientId = ownId;
+    } else if (!patientId) {
+      throw new ApiError(400, 'patientId is required for this role');
     }
     
+    // Allow doctors and admins/receptionists to query the patientId
     const result = await emrService.getPatientPrescriptions(patientId);
     res.json(result);
   } catch (err) {

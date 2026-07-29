@@ -1,24 +1,48 @@
 /**
- * Mock Notification Service
- * In a real application, this would integrate with SendGrid, Twilio, or AWS SES.
+ * Notification Service
+ * Integrates with SendGrid for emails. Falls back to console if key is missing.
  */
+const sgMail = require('@sendgrid/mail');
+
+if (process.env.SENDGRID_API_KEY) {
+  sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+}
 
 async function sendEmail(to, subject, htmlBody) {
-  // Simulate network delay
-  await new Promise(resolve => setTimeout(resolve, 500));
-  console.log('----------------------------------------------------');
-  console.log(`[EMAIL SENT] To: ${to}`);
-  console.log(`[SUBJECT] ${subject}`);
-  console.log(`[BODY]\n${htmlBody}`);
-  console.log('----------------------------------------------------');
-  return true;
+  if (!process.env.SENDGRID_API_KEY) {
+    // Fallback if no key is configured
+    console.log('----------------------------------------------------');
+    console.log(`[MOCK EMAIL] To: ${to}`);
+    console.log(`[SUBJECT] ${subject}`);
+    console.log(`[BODY]\n${htmlBody}`);
+    console.log('----------------------------------------------------');
+    return true;
+  }
+
+  try {
+    const msg = {
+      to,
+      from: process.env.SENDGRID_FROM_EMAIL || 'noreply@qcare.com', // Must be verified in SendGrid
+      subject,
+      html: htmlBody,
+    };
+    await sgMail.send(msg);
+    console.log(`[EMAIL SENT] To: ${to} via SendGrid`);
+    return true;
+  } catch (error) {
+    console.error('[SENDGRID ERROR]', error);
+    if (error.response) {
+      console.error(error.response.body);
+    }
+    return false;
+  }
 }
 
 async function sendSMS(phone, message) {
-  // Simulate network delay
+  // Simulate network delay for now (Twilio to be added later)
   await new Promise(resolve => setTimeout(resolve, 500));
   console.log('----------------------------------------------------');
-  console.log(`[SMS SENT] To: ${phone}`);
+  console.log(`[MOCK SMS] To: ${phone}`);
   console.log(`[MESSAGE] ${message}`);
   console.log('----------------------------------------------------');
   return true;
