@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { Activity, Calendar, Clock, HeartPulse, Shield, Smartphone, Zap } from 'lucide-react';
 import { motion } from 'framer-motion';
+import Footer from '../components/layout/Footer';
 
 export default function LandingPage() {
   return (
@@ -115,18 +116,7 @@ export default function LandingPage() {
         </div>
       </main>
 
-      {/* Footer */}
-      <footer className="bg-slate-50 border-t border-slate-200 py-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center">
-          <div className="flex items-center space-x-3 mb-4 md:mb-0">
-            <Activity className="h-6 w-6 text-indigo-600" />
-            <span className="text-xl font-display font-bold text-slate-900">Q-Care</span>
-          </div>
-          <p className="text-slate-500 text-sm">
-            © {new Date().getFullYear()} Q-Care Health Systems. All rights reserved.
-          </p>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }
