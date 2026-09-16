@@ -120,6 +120,10 @@ async function uploadDocument(req, res, next) {
     if (!file_name || !file_type || !file_data) {
       return res.status(400).json({ message: 'file_name, file_type, and file_data are required' });
     }
+    const allowedMimeTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png'];
+    if (!allowedMimeTypes.includes(file_type)) {
+      return res.status(400).json({ message: 'Invalid file type. Only PDF, JPG, and PNG are allowed.' });
+    }
     const doc = await patientService.uploadDocument(id, { file_name, file_type, file_data, category, notes });
     return res.status(201).json(doc);
   } catch (err) {

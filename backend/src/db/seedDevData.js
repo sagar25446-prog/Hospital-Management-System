@@ -26,6 +26,13 @@ async function upsertUser(client, { email, password, role }) {
 }
 
 async function main() {
+  if (process.env.NODE_ENV === 'production') {
+    // eslint-disable-next-line no-console
+    console.error('CRITICAL ERROR: Attempted to run seedDevData in production! Aborting immediately.');
+    process.exitCode = 1;
+    return;
+  }
+
   const d = new Date();
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, '0');
