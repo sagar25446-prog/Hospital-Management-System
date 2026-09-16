@@ -75,7 +75,7 @@ async function updateCurrentToken(req, res, next) {
   try {
     if (req.user.role === 'doctor') {
       const ownDoctorId = await queueService.getDoctorIdByUserId(req.user.id);
-      if (parseInt(ownDoctorId) !== parseInt(doctorId)) {
+      if (String(ownDoctorId) !== String(doctorId)) {
         return res.status(403).json({ message: 'You can only update queue for yourself' });
       }
     } else if (!['admin', 'reception'].includes(req.user.role)) {
@@ -140,7 +140,7 @@ async function resetDailyQueue(req, res, next) {
   try {
     if (req.user.role === 'doctor') {
       const ownDoctorId = await queueService.getDoctorIdByUserId(req.user.id);
-      if (parseInt(ownDoctorId) !== parseInt(doctorId)) {
+      if (String(ownDoctorId) !== String(doctorId)) {
         return res.status(403).json({ message: 'You can only reset queue for yourself' });
       }
     } else if (!['admin', 'reception'].includes(req.user.role)) {

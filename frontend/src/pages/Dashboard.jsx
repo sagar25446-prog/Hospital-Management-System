@@ -11,6 +11,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { User, Activity, Clock, Calendar, ChevronRight, Users, LayoutDashboard, Search, FileText, LogOut, CalendarPlus, BellRing, UserCog, Stethoscope, Mail, Lock, UserPlus, Shield } from 'lucide-react';
 import AdminStaffManager from './AdminStaffManager';
 import { listDoctors } from '../api/doctors.api';
+import VideoCallButton from '../components/common/VideoCallButton';
 
 function getTodayDateStr() {
   const d = new Date();
@@ -356,6 +357,13 @@ function PatientDashboardContent() {
               </div>
               
               <div className="flex flex-col sm:flex-row items-center gap-3">
+                {latestAppointment.status === 'scheduled' && latestAppointment.consultation_type === 'video' && (
+                  <VideoCallButton 
+                    doctorId={latestAppointment.doctor_id} 
+                    doctorName={[latestAppointment.doctor_first_name, latestAppointment.doctor_last_name].join(' ')} 
+                    patientName={user?.profile?.first_name} 
+                  />
+                )}
                 {latestAppointment.status === 'scheduled' && (
                   <button
                     onClick={() => setRescheduleModal({

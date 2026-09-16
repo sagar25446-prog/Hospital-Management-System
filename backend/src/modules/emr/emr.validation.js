@@ -1,7 +1,7 @@
 const Joi = require('joi');
 
 const createPrescriptionSchema = Joi.object({
-  appointmentId: Joi.string().uuid().required(),
+  appointmentId: Joi.string().uuid().allow(null).optional(),
   patientId: Joi.string().uuid().required(),
   diagnosis: Joi.string().trim().required(),
   instructions: Joi.string().trim().allow('', null),

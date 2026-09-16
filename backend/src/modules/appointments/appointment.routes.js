@@ -9,6 +9,9 @@ const appointmentController = require('./appointment.controller');
 const { asyncHandler } = require('../../utils/asyncHandler');
 const { authMiddleware } = require('../../middleware/authMiddleware');
 
+// Public: get booked slots for a doctor on a date (no auth needed for booking page)
+router.get('/doctors/:doctorId/booked-slots', asyncHandler(appointmentController.getBookedSlots));
+
 router.use(authMiddleware);
 
 router.post('/', asyncHandler(appointmentController.bookAppointment));

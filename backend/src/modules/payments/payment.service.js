@@ -235,7 +235,7 @@ async function handleWebhook(rawBody, signatureHeader) {
 async function getInvoice(paymentId) {
   const result = await pool.query(
     `SELECT i.*, 
-            a.appointment_date, a.start_time,
+            a.doctor_id, a.appointment_date, a.start_time,
             p.first_name AS patient_first_name, p.last_name AS patient_last_name,
             d.first_name AS doctor_first_name, d.last_name AS doctor_last_name,
             h.name AS hospital_name, h.address AS hospital_address, h.gstin AS hospital_gstin

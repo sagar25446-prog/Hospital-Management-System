@@ -8,6 +8,11 @@ export async function bookAppointment(payload) {
   return data;
 }
 
+export async function getBookedSlots(doctorId, date) {
+  const { data } = await apiClient.get(`appointments/doctors/${doctorId}/booked-slots`, { params: { date } });
+  return data.bookedSlots || [];
+}
+
 export async function getDoctorAppointments(doctorId, params = {}) {
   const { data } = await apiClient.get(`appointments/doctors/${doctorId}`, { params });
   return data;

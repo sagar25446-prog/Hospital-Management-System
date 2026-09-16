@@ -9,6 +9,7 @@ import WritePrescriptionModal from '../components/common/WritePrescriptionModal'
 import { motion, AnimatePresence } from 'framer-motion';
 import { Activity, Bell, Users, RefreshCw, ChevronRight, CheckCircle2, ShieldAlert, LogOut, Settings, FileText, UserX } from 'lucide-react';
 import { updateAppointmentStatus } from '../api/appointments.api';
+import VideoCallButton from '../components/common/VideoCallButton';
 
 export default function DoctorQueuePage() {
   const { doctorId: urlDoctorId } = useParams();
@@ -126,13 +127,13 @@ export default function DoctorQueuePage() {
     );
   }
 
-  if (user?.role !== 'doctor') {
+  if (!['doctor', 'reception', 'admin'].includes(user?.role)) {
     return (
       <main className="min-h-screen flex items-center justify-center bg-slate-50 p-4">
         <div className="text-center p-8 bg-white rounded-3xl shadow-lg border border-red-100 max-w-sm">
           <ShieldAlert className="h-12 w-12 text-red-500 mx-auto mb-4" />
           <p className="text-gray-800 font-medium">Restricted Access</p>
-          <p className="text-sm text-gray-500 mt-2">You must be logged in as a doctor to view this control panel.</p>
+          <p className="text-sm text-gray-500 mt-2">You must have authorization to view this control panel.</p>
         </div>
       </main>
     );
@@ -274,6 +275,21 @@ export default function DoctorQueuePage() {
           {/* Active Patient Actions */}
           {currentToken > 0 && (
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col sm:flex-row gap-3">
+              {(() => {
+                const servingPatient = tokens.find(t => t.token_number === currentToken);
+                if (servingPatient && servingPatient.consultation_type === 'video') {
+                  return (
+                    <div className="flex-1">
+                      <VideoCallButton 
+                        doctorId={doctorId} 
+                        doctorName="Doctor"
+                        patientName={[servingPatient.patient_first_name, servingPatient.patient_last_name].filter(Boolean).join(' ')} 
+                      />
+                    </div>
+                  );
+                }
+                return null;
+              })()}
               <button
                 onClick={() => {
                   const servingPatient = tokens.find(t => t.token_number === currentToken);

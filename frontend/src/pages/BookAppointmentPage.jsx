@@ -2,8 +2,9 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { getHospitals, getHospital, getHospitalDoctors } from '../api/hospitals.api';
-import { bookAppointment } from '../api/appointments.api';
+import { bookAppointment, getBookedSlots } from '../api/appointments.api';
 import { getMe } from '../api/auth.api';
+import { listPatients } from '../api/patients.api';
 import { createOrder } from '../api/payment.api';
 import { ErrorMessage, RazorpayCheckout } from '../components/common';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -47,6 +48,11 @@ export default function BookAppointmentPage() {
   const [paymentIntent, setPaymentIntent] = useState(null);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(null);
+  const [bookedSlots, setBookedSlots] = useState([]);
+  const [consultationType, setConsultationType] = useState('in_person');
+  const [pendingAppt, setPendingAppt] = useState(null);
+
+  const [patients, setPatients] = useState([]);
 
   // Initialization & URL Params Handling
   useEffect(() => {
@@ -62,6 +68,9 @@ export default function BookAppointmentPage() {
             pid = me?.profile?.id;
           }
           if (pid) setPatientId(pid);
+        } else {
+          const ptData = await listPatients({ limit: 100 }).catch(() => []);
+          setPatients(ptData.results || ptData || []);
         }
 
         // Fetch Hospitals
@@ -119,6 +128,14 @@ export default function BookAppointmentPage() {
     }
   };
 
+  useEffect(() => {
+    if (selectedDoctor && selectedDate) {
+      getBookedSlots(selectedDoctor.id, format(selectedDate, 'yyyy-MM-dd'))
+        .then(slots => setBookedSlots(slots || []))
+        .catch(() => setBookedSlots([]));
+    }
+  }, [selectedDoctor, selectedDate]);
+
   const handleDoctorSelect = (doc) => {
     setSelectedDoctor(doc);
     setStep(3);
@@ -138,12 +155,14 @@ export default function BookAppointmentPage() {
         appointment_date: format(selectedDate, 'yyyy-MM-dd'),
         start_time: selectedTime,
         end_time: formattedEndTime,
+        consultation_type: consultationType,
       };
       if (patientId) payload.patient_id = patientId;
       if (notes.trim()) payload.notes = notes.trim();
 
       const result = await bookAppointment(payload);
       const appt = result?.data ?? result;
+      setPendingAppt(appt);
 
       const fee = parseFloat(selectedDoctor.consultation_fee) || 0;
       if (fee > 0) {
@@ -359,9 +378,10 @@ export default function BookAppointmentPage() {
                   </h3>
                   <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
                     {timeSlots.map(time => {
-                      // Simulated random logic to disable some slots to make it look real
-                      const rand = Math.random();
-                      const isDisabled = rand < 0.2; 
+                      // Real availability check against the backend data
+                      // Backend returns slots like '09:00:00' or '09:00'. Normalizing here.
+                      const timeWithSeconds = time.length === 5 ? `${time}:00` : time;
+                      const isDisabled = bookedSlots.includes(time) || bookedSlots.includes(timeWithSeconds);
                       const isSelected = selectedTime === time;
 
                       // Format time (e.g. 14:00 to 02:00 PM)
@@ -372,7 +392,7 @@ export default function BookAppointmentPage() {
 
                       if (isDisabled) {
                         return (
-                          <div key={time} className="py-2.5 rounded-xl border border-slate-100 bg-slate-50 text-slate-300 text-center text-sm font-medium cursor-not-allowed">
+                          <div key={time} className="py-2.5 rounded-xl border border-slate-100 bg-slate-50 text-slate-300 text-center text-sm font-medium cursor-not-allowed line-through">
                             {displayTime}
                           </div>
                         );
@@ -393,6 +413,33 @@ export default function BookAppointmentPage() {
                       );
                     })}
                   </div>
+                </div>
+              </div>
+
+              {/* Consultation Type */}
+              <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 mb-8">
+                <h3 className="text-sm font-bold text-slate-500 uppercase tracking-widest mb-4">Consultation Type</h3>
+                <div className="flex gap-4">
+                  <button
+                    onClick={() => setConsultationType('in_person')}
+                    className={`flex-1 py-4 rounded-xl border-2 transition-all font-bold ${
+                      consultationType === 'in_person'
+                        ? 'border-brand-500 bg-brand-50 text-brand-700 shadow-sm'
+                        : 'border-slate-200 bg-white text-slate-600 hover:border-brand-300'
+                    }`}
+                  >
+                    In-Person Clinic Visit
+                  </button>
+                  <button
+                    onClick={() => setConsultationType('video')}
+                    className={`flex-1 py-4 rounded-xl border-2 transition-all font-bold ${
+                      consultationType === 'video'
+                        ? 'border-brand-500 bg-brand-50 text-brand-700 shadow-sm'
+                        : 'border-slate-200 bg-white text-slate-600 hover:border-brand-300'
+                    }`}
+                  >
+                    Online Video Consult
+                  </button>
                 </div>
               </div>
 
@@ -442,6 +489,9 @@ export default function BookAppointmentPage() {
                     <p className="text-[10px] font-bold text-brand-700 uppercase tracking-widest mb-1">Appointment</p>
                     <p className="font-display font-bold text-brand-900 text-lg">{format(selectedDate, 'MMM d, yyyy')}</p>
                     <p className="font-bold text-brand-600">{formatTime(selectedTime)}</p>
+                    <div className="mt-2 text-xs font-bold px-2 py-1 bg-white rounded text-brand-800 border border-brand-200">
+                      {consultationType === 'video' ? '📹 Video Consult' : '🏥 Clinic Visit'}
+                    </div>
                   </div>
                 </div>
                 
@@ -459,6 +509,26 @@ export default function BookAppointmentPage() {
                     disabled={bookingLoading}
                   />
                 </div>
+                {isStaff && (
+                  <div className="p-6 bg-slate-50 border-t border-slate-200">
+                    <label className="block text-sm font-bold text-slate-700 mb-2">
+                      Select Patient (Required for Staff Booking)
+                    </label>
+                    <select
+                      value={patientId || ''}
+                      onChange={e => setPatientId(e.target.value)}
+                      className="block w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors bg-white text-dark font-medium shadow-sm"
+                      disabled={bookingLoading}
+                    >
+                      <option value="" disabled>-- Select a Patient --</option>
+                      {patients.map(p => (
+                        <option key={p.id} value={p.id}>
+                          {p.first_name} {p.last_name} ({p.phone})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
               </div>
 
               <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
@@ -467,7 +537,7 @@ export default function BookAppointmentPage() {
                 </p>
                 <button
                   onClick={processBooking}
-                  disabled={bookingLoading}
+                  disabled={bookingLoading || (isStaff && !patientId)}
                   className="w-full sm:w-auto btn-premium py-4 px-10 text-lg flex items-center justify-center"
                 >
                   {bookingLoading ? (
@@ -528,7 +598,7 @@ export default function BookAppointmentPage() {
       <RazorpayCheckout
         isOpen={paymentModalOpen}
         intent={paymentIntent}
-        onSuccess={(invoice) => handlePaymentSuccess(invoice, null)}
+        onSuccess={(invoice) => handlePaymentSuccess(invoice, pendingAppt)}
         onClose={() => setPaymentModalOpen(false)}
         onError={(message) => { setPaymentModalOpen(false); setError(message); }}
       />

@@ -120,7 +120,7 @@ async function getCurrentQueue(doctorId, dateStr) {
     pool.query(
       `SELECT qt.id, qt.doctor_id, qt.patient_id, qt.token_number, qt.queue_date, qt.status, qt.created_at, qt.is_priority,
               p.first_name AS patient_first_name, p.last_name AS patient_last_name,
-              a.id AS appointment_id
+              a.id AS appointment_id, a.consultation_type, a.meeting_link
        FROM queue_tokens qt
        JOIN patients p ON p.id = qt.patient_id
        LEFT JOIN appointments a ON a.queue_token_id = qt.id

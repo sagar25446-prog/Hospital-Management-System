@@ -178,6 +178,18 @@ async function rescheduleAppointment(req, res, next) {
   }
 }
 
+async function getBookedSlots(req, res, next) {
+  const { doctorId } = req.params;
+  const { date } = req.query;
+  if (!date) return res.status(400).json({ message: 'date query parameter is required (YYYY-MM-DD)' });
+  try {
+    const slots = await appointmentService.getBookedSlots(doctorId, date);
+    return res.json({ bookedSlots: slots });
+  } catch (err) {
+    next(err);
+  }
+}
+
 module.exports = {
   bookAppointment,
   listDoctorAppointments,
@@ -186,4 +198,5 @@ module.exports = {
   updateStatus,
   cancelAppointment,
   rescheduleAppointment,
+  getBookedSlots,
 };

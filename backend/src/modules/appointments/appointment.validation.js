@@ -77,6 +77,8 @@ function validateBookAppointment(body) {
     return { error: 'start_time must be before end_time' };
   }
 
+  const consultation_type = body?.consultation_type === 'video' ? 'video' : 'in_person';
+
   return {
     value: {
       doctorId: doctorId.trim(),
@@ -85,6 +87,7 @@ function validateBookAppointment(body) {
       start_time: startVal,
       end_time: endVal,
       notes: notes != null && notes !== '' ? String(notes).trim() : null,
+      consultation_type,
     },
   };
 }

@@ -70,21 +70,24 @@ async function checkNoConflict(client, doctorId, appointmentDate, startTime) {
 }
 
 async function bookAppointment(data) {
-  const { doctorId, patientId, appointment_date, start_time, end_time, notes } = data;
+  const { doctorId, patientId, appointment_date, start_time, end_time, notes, consultation_type = 'in_person' } = data;
   await assertDoctorExists(doctorId);
   await assertPatientExists(patientId);
   const dayOfWeek = getDayOfWeek(appointment_date);
   await checkSlotInSchedule(doctorId, appointment_date, dayOfWeek, start_time, end_time);
+
+  // Generate meeting link for video consults
+  const meeting_link = consultation_type === 'video' ? `qcare-video-${require('crypto').randomUUID()}` : null;
 
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
     await checkNoConflict(client, doctorId, appointment_date, start_time);
     const insertAppt = await client.query(
-      `INSERT INTO appointments (patient_id, doctor_id, appointment_date, start_time, end_time, status, notes)
-       VALUES ($1, $2, $3, $4, $5, 'scheduled', $6)
-       RETURNING id, patient_id, doctor_id, appointment_date, start_time, end_time, status, notes, queue_token_id, created_at, updated_at`,
-      [patientId, doctorId, appointment_date, start_time, end_time, notes]
+      `INSERT INTO appointments (patient_id, doctor_id, appointment_date, start_time, end_time, status, notes, consultation_type, meeting_link)
+       VALUES ($1, $2, $3, $4, $5, 'scheduled', $6, $7, $8)
+       RETURNING id, patient_id, doctor_id, appointment_date, start_time, end_time, status, notes, consultation_type, meeting_link, queue_token_id, created_at, updated_at`,
+      [patientId, doctorId, appointment_date, start_time, end_time, notes, consultation_type, meeting_link]
     );
     const appointment = insertAppt.rows[0];
     const token = await queueService.generateTokenInTransaction(client, doctorId, patientId, appointment_date);
@@ -159,7 +162,7 @@ async function listDoctorAppointments(doctorId, filters) {
   const offsetIdx = nextIndex + 1;
   params.push(filters.limit, filters.offset);
   const sql = `
-    SELECT a.id, a.patient_id, a.doctor_id, a.appointment_date, a.start_time, a.end_time, a.status, a.payment_status, a.transaction_id, a.notes, a.queue_token_id, a.created_at, a.updated_at,
+    SELECT a.id, a.patient_id, a.doctor_id, a.appointment_date, a.start_time, a.end_time, a.status, a.payment_status, a.transaction_id, a.notes, a.consultation_type, a.meeting_link, a.queue_token_id, a.created_at, a.updated_at,
            p.first_name AS patient_first_name, p.last_name AS patient_last_name,
            qt.token_number
     FROM appointments a
@@ -180,7 +183,7 @@ async function listPatientAppointments(patientId, filters) {
   const offsetIdx = nextIndex + 1;
   params.push(filters.limit, filters.offset);
   const sql = `
-    SELECT a.id, a.patient_id, a.doctor_id, a.appointment_date, a.start_time, a.end_time, a.status, a.payment_status, a.transaction_id, a.notes, a.queue_token_id, a.created_at, a.updated_at,
+    SELECT a.id, a.patient_id, a.doctor_id, a.appointment_date, a.start_time, a.end_time, a.status, a.payment_status, a.transaction_id, a.notes, a.consultation_type, a.meeting_link, a.queue_token_id, a.created_at, a.updated_at,
            d.first_name AS doctor_first_name, d.last_name AS doctor_last_name, d.specialization AS doctor_specialization,
            qt.token_number
     FROM appointments a
@@ -196,7 +199,7 @@ async function listPatientAppointments(patientId, filters) {
 
 async function getAppointmentById(id) {
   const result = await pool.query(
-    `SELECT a.id, a.patient_id, a.doctor_id, a.appointment_date, a.start_time, a.end_time, a.status, a.payment_status, a.transaction_id, a.notes, a.queue_token_id, a.created_at, a.updated_at,
+    `SELECT a.id, a.patient_id, a.doctor_id, a.appointment_date, a.start_time, a.end_time, a.status, a.payment_status, a.transaction_id, a.notes, a.consultation_type, a.meeting_link, a.queue_token_id, a.created_at, a.updated_at,
             p.first_name AS patient_first_name, p.last_name AS patient_last_name,
             d.first_name AS doctor_first_name, d.last_name AS doctor_last_name, d.specialization AS doctor_specialization,
             qt.token_number
@@ -310,6 +313,20 @@ async function rescheduleAppointment(id, appointment_date, start_time, end_time)
   }
 }
 
+/**
+ * Returns already-booked start_times for a specific doctor on a specific date.
+ * Used by the frontend to show real availability (replaces Math.random).
+ */
+async function getBookedSlots(doctorId, date) {
+  const result = await pool.query(
+    `SELECT start_time FROM appointments
+     WHERE doctor_id = $1 AND appointment_date = $2 AND status != 'cancelled'
+     ORDER BY start_time`,
+    [doctorId, date]
+  );
+  return result.rows.map(r => String(r.start_time));
+}
+
 module.exports = {
   bookAppointment,
   listDoctorAppointments,
@@ -318,4 +335,5 @@ module.exports = {
   updateAppointmentStatus,
   cancelAppointment,
   rescheduleAppointment,
+  getBookedSlots,
 };
