@@ -48,7 +48,7 @@ app.use(cookieParser());
 // Trust proxy for Vercel / reverse proxy deployments
 app.set('trust proxy', 1);
 
-// CORS: strict origin checking in production
+// CORS: strict origin allowlist — no wildcards with credentials
 const allowedOrigins = [
   'http://localhost:5173',
   'http://localhost:3000',
@@ -59,7 +59,7 @@ app.use(cors({
   origin: function (origin, callback) {
     // Allow requests with no origin (mobile apps, server-to-server, health checks)
     if (!origin) return callback(null, true);
-    if (allowedOrigins.some(allowed => origin === allowed || origin.endsWith('.vercel.app'))) {
+    if (allowedOrigins.includes(origin)) {
       return callback(null, true);
     }
     // In development, allow all; in production, reject unknown origins

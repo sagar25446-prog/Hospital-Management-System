@@ -154,6 +154,8 @@ async function downloadDocument(req, res, next) {
       if (ownId !== doc.patient_id) {
         return res.status(403).json({ message: 'Access denied' });
       }
+    } else if (!['admin', 'reception', 'doctor'].includes(req.user?.role)) {
+      return res.status(403).json({ message: 'Insufficient permissions' });
     }
     return res.json(doc);
   } catch (err) {
@@ -167,6 +169,9 @@ async function deleteDocument(req, res, next) {
     const ownId = req.user?.role === 'patient' ? await patientService.getPatientIdByUserId(req.user.id) : null;
     if (req.user?.role === 'patient' && ownId !== id) {
       return res.status(403).json({ message: 'You can only delete your own documents' });
+    }
+    if (!['admin', 'reception'].includes(req.user?.role) && req.user?.role !== 'patient') {
+      return res.status(403).json({ message: 'Insufficient permissions' });
     }
     const result = await patientService.deleteDocument(docId, id);
     return res.json(result);

@@ -1,0 +1,21 @@
+name: README Validation
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate README and project files
+        shell: bash
+        run: |
+          test -s README.md
+          test -f frontend/package.json
+          test -f backend/package.json
+          grep -q "Q-Care" README.md
+          grep -q "PostgreSQL" README.md
