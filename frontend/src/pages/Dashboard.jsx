@@ -5,13 +5,14 @@ import { getMe } from '../api/auth.api';
 import { getQueueHistory, getAppointmentHistory } from '../api/patients.api';
 import { getEstimate } from '../api/queue.api';
 import { getDashboard, getQueues, getDoctorsWorkload, createStaff, listStaff } from '../api/admin.api';
-import { rescheduleAppointment } from '../api/appointments.api';
+import { rescheduleAppointment, cancelAppointment } from '../api/appointments.api';
 import { ErrorMessage } from '../components/common';
 import { motion, AnimatePresence } from 'framer-motion';
 import { User, Activity, Clock, Calendar, ChevronRight, Users, LayoutDashboard, Search, FileText, LogOut, CalendarPlus, BellRing, UserCog, Stethoscope, Mail, Lock, UserPlus, Shield } from 'lucide-react';
 import AdminStaffManager from './AdminStaffManager';
 import { listDoctors } from '../api/doctors.api';
 import VideoCallButton from '../components/common/VideoCallButton';
+import WalkInModal from '../components/reception/WalkInModal';
 
 function getTodayDateStr() {
   const d = new Date();
@@ -27,6 +28,8 @@ function PatientDashboardContent() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [hasNotified, setHasNotified] = useState(false);
+
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   const fetchPatientId = useCallback(async () => {
     if (user?.role !== 'patient') return;
@@ -94,7 +97,7 @@ function PatientDashboardContent() {
       }
     })();
     return () => { cancelled = true; };
-  }, [patientId]);
+  }, [patientId, refreshTrigger]);
 
   // Handle Smart Notification
   useEffect(() => {
@@ -148,6 +151,22 @@ function PatientDashboardContent() {
   }
 
   const [rescheduleModal, setRescheduleModal] = useState({ open: false, appointment: null, date: '', startTime: '', endTime: '', loading: false });
+  const [cancelLoading, setCancelLoading] = useState(false);
+
+  const handleCancel = async (appointmentId) => {
+    if (!window.confirm("Are you sure you want to cancel this appointment? This action cannot be undone.")) return;
+    setCancelLoading(true);
+    setError('');
+    try {
+      await cancelAppointment(appointmentId);
+      // Refresh data
+      setRefreshTrigger(prev => prev + 1);
+    } catch (err) {
+      setError(err.response?.data?.message || err.message || 'Failed to cancel appointment');
+    } finally {
+      setCancelLoading(false);
+    }
+  };
 
   const handleReschedule = async (e) => {
     e.preventDefault();
@@ -160,7 +179,7 @@ function PatientDashboardContent() {
         end_time: rescheduleModal.endTime,
       });
       // Refresh patient history
-      fetchPatientId(); // Simple way to trigger re-fetch by triggering effect
+      setRefreshTrigger(prev => prev + 1);
       setRescheduleModal({ open: false, appointment: null, date: '', startTime: '', endTime: '', loading: false });
     } catch (err) {
       alert(err.response?.data?.message || err.message || 'Failed to reschedule');
@@ -365,19 +384,28 @@ function PatientDashboardContent() {
                   />
                 )}
                 {latestAppointment.status === 'scheduled' && (
-                  <button
-                    onClick={() => setRescheduleModal({
-                      open: true,
-                      appointment: latestAppointment,
-                      date: latestAppointment.appointment_date,
-                      startTime: latestAppointment.start_time || '',
-                      endTime: latestAppointment.end_time || '',
-                      loading: false
-                    })}
-                    className="text-sm font-semibold text-brand-600 bg-brand-50 hover:bg-brand-100 px-4 py-2 rounded-xl transition-colors border border-brand-200"
-                  >
-                    Reschedule
-                  </button>
+                  <>
+                    <button
+                      onClick={() => setRescheduleModal({
+                        open: true,
+                        appointment: latestAppointment,
+                        date: latestAppointment.appointment_date,
+                        startTime: latestAppointment.start_time || '',
+                        endTime: latestAppointment.end_time || '',
+                        loading: false
+                      })}
+                      className="text-sm font-semibold text-brand-600 bg-brand-50 hover:bg-brand-100 px-4 py-2 rounded-xl transition-colors border border-brand-200"
+                    >
+                      Reschedule
+                    </button>
+                    <button
+                      onClick={() => handleCancel(latestAppointment.appointment_id)}
+                      disabled={cancelLoading}
+                      className="text-sm font-semibold text-red-600 bg-red-50 hover:bg-red-100 px-4 py-2 rounded-xl transition-colors border border-red-200 disabled:opacity-50"
+                    >
+                      Cancel
+                    </button>
+                  </>
                 )}
                 {latestAppointment.doctor_id && (
                   <Link to={`/queue/${latestAppointment.doctor_id}`}>
@@ -469,6 +497,7 @@ function AdminDashboardContent() {
   const [queues, setQueues] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [walkInModalOpen, setWalkInModalOpen] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -577,6 +606,12 @@ function AdminDashboardContent() {
                 <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.4 }} className="glass-panel overflow-hidden flex flex-col h-full !p-0">
                   <div className="px-6 py-5 border-b border-slate-100/50 bg-white/40 flex justify-between items-center">
                      <h2 className="font-bold text-dark flex items-center"><Activity className="h-5 w-5 mr-2 text-brand-600" /> Live Queues</h2>
+                     <button
+                       onClick={() => setWalkInModalOpen(true)}
+                       className="text-xs font-bold text-white bg-brand-600 hover:bg-brand-700 px-3 py-1.5 rounded-lg flex items-center shadow-sm transition-colors"
+                     >
+                       <UserPlus className="h-4 w-4 mr-1" /> Add Walk-In
+                     </button>
                   </div>
                   <div className="overflow-x-auto flex-grow">
                     <table className="w-full text-left text-sm whitespace-nowrap">
@@ -650,6 +685,18 @@ function AdminDashboardContent() {
           )}
         </>
       )}
+
+      <WalkInModal 
+        isOpen={walkInModalOpen}
+        onClose={() => setWalkInModalOpen(false)}
+        onSuccess={() => {
+          setWalkInModalOpen(false);
+          // Auto-refresh the queues
+          if (activeTab === 'overview') {
+            setActiveTab('overview'); // trigger re-render
+          }
+        }}
+      />
     </div>
   );
 }
