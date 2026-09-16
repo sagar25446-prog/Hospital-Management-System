@@ -48,7 +48,19 @@ async function sendSMS(phone, message) {
   return true;
 }
 
+async function sendWhatsApp(phone, templateName, variables) {
+  // Simulate network delay for now (WhatsApp Business API to be added later)
+  await new Promise(resolve => setTimeout(resolve, 500));
+  console.log('----------------------------------------------------');
+  console.log(`[MOCK WHATSAPP] To: ${phone}`);
+  console.log(`[TEMPLATE] ${templateName}`);
+  console.log(`[VARIABLES] ${JSON.stringify(variables)}`);
+  console.log('----------------------------------------------------');
+  return true;
+}
+
 module.exports = {
   sendEmail,
   sendSMS,
+  sendWhatsApp,
 };

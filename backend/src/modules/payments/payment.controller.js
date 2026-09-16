@@ -68,8 +68,34 @@ async function webhook(req, res, next) {
   }
 }
 
+async function getInvoice(req, res, next) {
+  try {
+    const { paymentId } = req.params;
+    const invoice = await paymentService.getInvoice(paymentId);
+    
+    // Auth check: patient can only see their own, doctor can see their own, admin/reception can see all
+    if (req.user.role === 'patient') {
+      const owns = await queueService.getPatientIdByUserId(req.user.id);
+      if (invoice.patient_id !== owns) {
+        return res.status(403).json({ message: 'You cannot view this invoice' });
+      }
+    } else if (req.user.role === 'doctor') {
+      const doctorService = require('../doctors/doctor.service');
+      const owns = await doctorService.getDoctorIdByUserId(req.user.id);
+      if (invoice.doctor_id !== owns) {
+        return res.status(403).json({ message: 'You cannot view this invoice' });
+      }
+    }
+    
+    res.json(invoice);
+  } catch (err) {
+    next(err);
+  }
+}
+
 module.exports = {
   createOrder,
   verifyPayment,
   webhook,
+  getInvoice,
 };

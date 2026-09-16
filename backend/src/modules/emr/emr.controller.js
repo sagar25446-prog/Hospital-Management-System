@@ -1,6 +1,7 @@
 const emrService = require('./emr.service');
 const queueService = require('../queue/queue.service');
 const { ApiError } = require('../../utils/ApiError');
+const { createPrescriptionSchema } = require('./emr.validation');
 
 async function addPrescription(req, res, next) {
   try {
@@ -8,8 +9,13 @@ async function addPrescription(req, res, next) {
       throw new ApiError(403, 'Only doctors can write prescriptions');
     }
     
+    const { error, value } = createPrescriptionSchema.validate(req.body);
+    if (error) {
+      throw new ApiError(400, error.details[0].message);
+    }
+    
     const doctorId = await queueService.getDoctorIdByUserId(req.user.id);
-    const data = { ...req.body, doctorId };
+    const data = { ...value, doctorId };
     
     const result = await emrService.createPrescription(data);
     res.status(201).json(result);

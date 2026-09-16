@@ -24,8 +24,19 @@ async function assertPatientExists(patientId) {
 
 /**
  * Check that (startTime, endTime) falls within at least one available doctor schedule slot for the given day_of_week.
+ * Also checks if the specific date has been marked as an exception (e.g. day off).
  */
-async function checkSlotInSchedule(doctorId, dayOfWeek, startTime, endTime) {
+async function checkSlotInSchedule(doctorId, appointmentDate, dayOfWeek, startTime, endTime) {
+  // First, check if there's an exception blocking this entire day
+  const exception = await pool.query(
+    `SELECT is_available FROM doctor_schedule_exceptions WHERE doctor_id = $1 AND exception_date = $2`,
+    [doctorId, appointmentDate]
+  );
+  if (exception.rows.length > 0 && exception.rows[0].is_available === false) {
+    throw new ApiError(400, 'Doctor is unavailable on this specific date');
+  }
+
+  // If no exception or exception says available (which we don't strictly support right now, but could), check the regular schedule
   const slots = await pool.query(
     `SELECT start_time, end_time FROM doctor_schedules
      WHERE doctor_id = $1 AND day_of_week = $2 AND is_available = true`,
@@ -63,7 +74,7 @@ async function bookAppointment(data) {
   await assertDoctorExists(doctorId);
   await assertPatientExists(patientId);
   const dayOfWeek = getDayOfWeek(appointment_date);
-  await checkSlotInSchedule(doctorId, dayOfWeek, start_time, end_time);
+  await checkSlotInSchedule(doctorId, appointment_date, dayOfWeek, start_time, end_time);
 
   const client = await pool.connect();
   try {
@@ -218,12 +229,12 @@ async function updateAppointmentStatus(id, status) {
       `UPDATE appointments SET status = $1, updated_at = NOW() WHERE id = $2`,
       [status, id]
     );
-    if (status === 'cancelled' && row.queue_token_id) {
+    if ((status === 'cancelled' || status === 'no_show' || status === 'completed') && row.queue_token_id) {
       const today = getTodayDate();
       if (row.appointment_date === today) {
         await client.query(
-          `UPDATE queue_tokens SET status = 'cancelled' WHERE id = $1 AND status = 'waiting'`,
-          [row.queue_token_id]
+          `UPDATE queue_tokens SET status = $1 WHERE id = $2 AND status IN ('waiting', 'called', 'serving')`,
+          [status, row.queue_token_id]
         );
       }
     }
@@ -241,6 +252,64 @@ async function cancelAppointment(id) {
   return updateAppointmentStatus(id, 'cancelled');
 }
 
+async function rescheduleAppointment(id, appointment_date, start_time, end_time) {
+  const appointment = await getAppointmentById(id);
+  if (appointment.status === 'completed' || appointment.status === 'cancelled') {
+    throw new ApiError(400, `Cannot reschedule a ${appointment.status} appointment`);
+  }
+
+  const doctorId = appointment.doctor_id;
+  const dayOfWeek = getDayOfWeek(appointment_date);
+  await checkSlotInSchedule(doctorId, appointment_date, dayOfWeek, start_time, end_time);
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    
+    // Check conflict (excluding current appointment)
+    const conflict = await client.query(
+      `SELECT id FROM appointments
+       WHERE doctor_id = $1 AND appointment_date = $2 AND start_time = $3 AND status != 'cancelled' AND id != $4`,
+      [doctorId, appointment_date, start_time, appointment.id]
+    );
+    if (conflict.rows.length > 0) {
+      throw new ApiError(409, 'This time slot is already booked for the doctor');
+    }
+
+    // Update appointment
+    await client.query(
+      `UPDATE appointments 
+       SET appointment_date = $1, start_time = $2, end_time = $3, status = 'scheduled', updated_at = NOW()
+       WHERE id = $4`,
+      [appointment_date, start_time, end_time, id]
+    );
+
+    // If date changed, we need a new token number for the new day
+    if (appointment.appointment_date !== appointment_date) {
+      if (appointment.queue_token_id) {
+        await client.query(`UPDATE queue_tokens SET status = 'cancelled' WHERE id = $1`, [appointment.queue_token_id]);
+      }
+      const newToken = await queueService.generateTokenInTransaction(client, doctorId, appointment.patient_id, appointment_date);
+      await client.query(
+        'UPDATE appointments SET queue_token_id = $1, updated_at = NOW() WHERE id = $2',
+        [newToken.id, id]
+      );
+    }
+
+    await client.query('COMMIT');
+    return getAppointmentById(id);
+  } catch (err) {
+    await client.query('ROLLBACK');
+    if (err instanceof ApiError) throw err;
+    if (err.code === '23505') {
+      throw new ApiError(409, 'This time slot is already booked');
+    }
+    throw err;
+  } finally {
+    client.release();
+  }
+}
+
 module.exports = {
   bookAppointment,
   listDoctorAppointments,
@@ -248,4 +317,5 @@ module.exports = {
   getAppointmentById,
   updateAppointmentStatus,
   cancelAppointment,
+  rescheduleAppointment,
 };

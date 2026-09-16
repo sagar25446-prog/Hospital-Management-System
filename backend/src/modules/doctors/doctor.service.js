@@ -175,6 +175,38 @@ async function getDoctorIdByUserId(userId) {
   return r.rows[0] ? r.rows[0].id : null;
 }
 
+async function getScheduleExceptions(doctorId) {
+  const result = await pool.query(
+    `SELECT id, exception_date, is_available, notes, created_at 
+     FROM doctor_schedule_exceptions 
+     WHERE doctor_id = $1 
+     ORDER BY exception_date ASC`,
+    [doctorId]
+  );
+  return result.rows;
+}
+
+async function addScheduleException(doctorId, exception_date, is_available, notes) {
+  await getDoctorById(doctorId);
+  const result = await pool.query(
+    `INSERT INTO doctor_schedule_exceptions (doctor_id, exception_date, is_available, notes)
+     VALUES ($1, $2, $3, $4)
+     ON CONFLICT (doctor_id, exception_date) 
+     DO UPDATE SET is_available = $3, notes = $4, updated_at = NOW()
+     RETURNING id, exception_date, is_available, notes`,
+    [doctorId, exception_date, is_available !== false, notes] // default is true if somehow undefined, but we want explicit boolean
+  );
+  return result.rows[0];
+}
+
+async function removeScheduleException(doctorId, exceptionId) {
+  await pool.query(
+    `DELETE FROM doctor_schedule_exceptions WHERE id = $1 AND doctor_id = $2`,
+    [exceptionId, doctorId]
+  );
+  return { success: true };
+}
+
 module.exports = {
   createDoctor,
   listDoctors,
@@ -185,4 +217,7 @@ module.exports = {
   setSchedule,
   getSpecializations,
   getDoctorIdByUserId,
+  getScheduleExceptions,
+  addScheduleException,
+  removeScheduleException,
 };

@@ -34,3 +34,18 @@ export async function updateDoctor(id, payload) {
   const { data } = await apiClient.patch(`/doctors/${id}`, payload);
   return data;
 }
+
+export async function getScheduleExceptions(id) {
+  const { data } = await apiClient.get(`/doctors/${id}/exceptions`);
+  return data;
+}
+
+export async function addScheduleException(id, payload) {
+  const { data } = await apiClient.post(`/doctors/${id}/exceptions`, payload);
+  return data;
+}
+
+export async function removeScheduleException(id, exceptionId) {
+  const { data } = await apiClient.delete(`/doctors/${id}/exceptions/${exceptionId}`);
+  return data;
+}

@@ -41,7 +41,7 @@ async function ensureDoctorDailyQueue(client, doctorId, queueDate) {
 /**
  * Generate a new token for (doctor, patient, date). One token per patient per doctor per day.
  */
-async function generateToken(doctorId, patientId, dateStr) {
+async function generateToken(doctorId, patientId, dateStr, isPriority = false) {
   const queueDate = toQueueDate(dateStr);
   const client = await pool.connect();
   try {
@@ -60,7 +60,7 @@ async function generateToken(doctorId, patientId, dateStr) {
     if (patientCheck.rows.length === 0) {
       throw new ApiError(404, 'Patient not found');
     }
-    const tokenRow = await generateTokenInTransaction(client, doctorId, patientId, queueDate);
+    const tokenRow = await generateTokenInTransaction(client, doctorId, patientId, queueDate, isPriority);
     await client.query('COMMIT');
     return tokenRow;
   } catch (err) {
@@ -80,7 +80,7 @@ async function generateToken(doctorId, patientId, dateStr) {
  * Used by appointment booking so appointment + token are created in one transaction.
  * Caller must have already started a transaction on client.
  */
-async function generateTokenInTransaction(client, doctorId, patientId, queueDate) {
+async function generateTokenInTransaction(client, doctorId, patientId, queueDate, isPriority = false) {
   const existing = await client.query(
     `SELECT id FROM queue_tokens WHERE doctor_id = $1 AND queue_date = $2 AND patient_id = $3`,
     [doctorId, queueDate, patientId]
@@ -97,10 +97,10 @@ async function generateTokenInTransaction(client, doctorId, patientId, queueDate
   );
   const tokenNumber = inc.rows[0].last_token_number;
   const insert = await client.query(
-    `INSERT INTO queue_tokens (doctor_id, patient_id, queue_date, token_number, status)
-     VALUES ($1, $2, $3, $4, 'waiting')
-     RETURNING id, doctor_id, patient_id, token_number, queue_date, status, created_at`,
-    [doctorId, patientId, queueDate, tokenNumber]
+    `INSERT INTO queue_tokens (doctor_id, patient_id, queue_date, token_number, status, is_priority)
+     VALUES ($1, $2, $3, $4, 'waiting', $5)
+     RETURNING id, doctor_id, patient_id, token_number, queue_date, status, is_priority, created_at`,
+    [doctorId, patientId, queueDate, tokenNumber, isPriority]
   );
   return insert.rows[0];
 }
@@ -118,12 +118,14 @@ async function getCurrentQueue(doctorId, dateStr) {
       [doctorId, queueDate]
     ),
     pool.query(
-      `SELECT qt.id, qt.doctor_id, qt.patient_id, qt.token_number, qt.queue_date, qt.status, qt.created_at,
-              p.first_name AS patient_first_name, p.last_name AS patient_last_name
+      `SELECT qt.id, qt.doctor_id, qt.patient_id, qt.token_number, qt.queue_date, qt.status, qt.created_at, qt.is_priority,
+              p.first_name AS patient_first_name, p.last_name AS patient_last_name,
+              a.id AS appointment_id
        FROM queue_tokens qt
        JOIN patients p ON p.id = qt.patient_id
+       LEFT JOIN appointments a ON a.queue_token_id = qt.id
        WHERE qt.doctor_id = $1 AND qt.queue_date = $2 AND qt.status IN ('waiting', 'called', 'serving')
-       ORDER BY qt.token_number ASC`,
+       ORDER BY qt.is_priority DESC, qt.token_number ASC`,
       [doctorId, queueDate]
     ),
     pool.query(
@@ -215,12 +217,14 @@ async function listUpcomingTokens(doctorId, dateStr, limit = 50) {
   await assertDoctorExists(doctorId);
   const queueDate = toQueueDate(dateStr);
   const result = await pool.query(
-    `SELECT qt.id, qt.doctor_id, qt.patient_id, qt.token_number, qt.queue_date, qt.status, qt.created_at,
-            p.first_name AS patient_first_name, p.last_name AS patient_last_name
+    `SELECT qt.id, qt.doctor_id, qt.patient_id, qt.token_number, qt.queue_date, qt.status, qt.created_at, qt.is_priority,
+            p.first_name AS patient_first_name, p.last_name AS patient_last_name,
+            a.id AS appointment_id
      FROM queue_tokens qt
      JOIN patients p ON p.id = qt.patient_id
+     LEFT JOIN appointments a ON a.queue_token_id = qt.id
      WHERE qt.doctor_id = $1 AND qt.queue_date = $2 AND qt.status IN ('waiting', 'called', 'serving')
-     ORDER BY qt.token_number ASC
+     ORDER BY qt.is_priority DESC, qt.token_number ASC
      LIMIT $3`,
     [doctorId, queueDate, Math.min(limit, 100)]
   );

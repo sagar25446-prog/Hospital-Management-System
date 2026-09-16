@@ -17,9 +17,27 @@ const paymentRoutes = require('./modules/payments/payment.routes');
 const emrRoutes = require('./modules/emr/emr.routes');
 const hospitalRoutes = require('./modules/hospitals/hospital.routes');
 const symptomCheckerRoutes = require('./modules/symptom-checker/symptomChecker.routes');
+const Sentry = require('@sentry/node');
+const { nodeProfilingIntegration } = require('@sentry/profiling-node');
 const { errorHandler } = require('./middleware/errorHandler');
 
 const app = express();
+
+// Initialize Sentry before any routes or middleware
+Sentry.init({
+  dsn: process.env.SENTRY_DSN, // Will be ignored if not set
+  integrations: [
+    nodeProfilingIntegration(),
+  ],
+  tracesSampleRate: 1.0, 
+  profilesSampleRate: 1.0,
+});
+
+// The request handler must be the first middleware on the app
+app.use(Sentry.Handlers.requestHandler());
+
+// TracingHandler creates a trace for every incoming request
+app.use(Sentry.Handlers.tracingHandler());
 
 // Security headers (XSS, clickjacking, MIME sniffing, etc.)
 app.use(helmet());
@@ -101,6 +119,9 @@ app.use('/api/v1/payments', apiLimiter, paymentRoutes);
 app.use('/api/v1/emr', apiLimiter, emrRoutes);
 app.use('/api/v1/hospitals', apiLimiter, hospitalRoutes);
 app.use('/api/v1/symptom-checker', symptomCheckerLimiter, symptomCheckerRoutes);
+
+// The error handler must be before any other error middleware and after all controllers
+app.use(Sentry.Handlers.errorHandler());
 
 app.use(errorHandler);
 

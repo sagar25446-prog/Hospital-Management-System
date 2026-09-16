@@ -97,6 +97,50 @@ async function getSpecializations(req, res, next) {
   }
 }
 
+async function getExceptions(req, res, next) {
+  const { id } = req.params;
+  try {
+    const exceptions = await doctorService.getScheduleExceptions(id);
+    return res.json(exceptions);
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function addException(req, res, next) {
+  const { id } = req.params;
+  const { exception_date, is_available, notes } = req.body;
+  if (!exception_date) return res.status(400).json({ message: 'exception_date is required' });
+  try {
+    if (req.user.role === 'doctor') {
+      const ownId = await doctorService.getDoctorIdByUserId(req.user.id);
+      if (ownId !== id) return res.status(403).json({ message: 'You can only update your own schedule' });
+    } else if (req.user.role !== 'admin') {
+      return res.status(403).json({ message: 'Insufficient permissions' });
+    }
+    const result = await doctorService.addScheduleException(id, exception_date, is_available, notes);
+    return res.status(201).json(result);
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function removeException(req, res, next) {
+  const { id, exceptionId } = req.params;
+  try {
+    if (req.user.role === 'doctor') {
+      const ownId = await doctorService.getDoctorIdByUserId(req.user.id);
+      if (ownId !== id) return res.status(403).json({ message: 'You can only update your own schedule' });
+    } else if (req.user.role !== 'admin') {
+      return res.status(403).json({ message: 'Insufficient permissions' });
+    }
+    await doctorService.removeScheduleException(id, exceptionId);
+    return res.json({ success: true });
+  } catch (err) {
+    next(err);
+  }
+}
+
 module.exports = {
   createDoctor,
   listDoctors,
@@ -105,4 +149,7 @@ module.exports = {
   getSchedule,
   setSchedule,
   getSpecializations,
+  getExceptions,
+  addException,
+  removeException,
 };

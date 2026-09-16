@@ -92,11 +92,48 @@ function validateGoogleAuth(body) {
   return { value: { idToken: idToken.trim() } };
 }
 
+function validateForgotPassword(body) {
+  const { email } = body || {};
+  if (!email || typeof email !== 'string') {
+    return { error: 'Email is required' };
+  }
+  const trimmedEmail = email.trim().toLowerCase();
+  if (!EMAIL_REGEX.test(trimmedEmail)) {
+    return { error: 'Invalid email format' };
+  }
+  return { value: { email: trimmedEmail } };
+}
+
+function validateResetPassword(body) {
+  const { email, token, newPassword } = body || {};
+  if (!email || typeof email !== 'string') {
+    return { error: 'Email is required' };
+  }
+  if (!token || typeof token !== 'string' || !token.trim()) {
+    return { error: 'Token is required' };
+  }
+  if (!newPassword || typeof newPassword !== 'string') {
+    return { error: 'New password is required' };
+  }
+  if (newPassword.length < MIN_PASSWORD_LENGTH) {
+    return { error: `Password must be at least ${MIN_PASSWORD_LENGTH} characters` };
+  }
+  return {
+    value: {
+      email: email.trim().toLowerCase(),
+      token: token.trim(),
+      newPassword,
+    },
+  };
+}
+
 module.exports = {
   validateRegister,
   validateLogin,
   validateRefresh,
   validateLogout,
   validateGoogleAuth,
+  validateForgotPassword,
+  validateResetPassword,
   ROLES,
 };

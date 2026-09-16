@@ -5,11 +5,17 @@
 
 const { ApiError } = require('../utils/ApiError');
 
+const logger = require('../utils/logger');
+
 function errorHandler(err, req, res, next) {
   if (err instanceof ApiError) {
+    if (err.statusCode >= 500) {
+      logger.error(`[ApiError] ${err.message}`, err);
+    }
     return res.status(err.statusCode).json({ message: err.message });
   }
-  console.error(err);
+  
+  logger.error(err.message || 'Unhandled error', err);
   return res.status(500).json({ message: 'Internal server error' });
 }
 

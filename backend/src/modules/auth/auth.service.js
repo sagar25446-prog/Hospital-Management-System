@@ -9,6 +9,7 @@ const crypto = require('crypto');
 const { OAuth2Client } = require('google-auth-library');
 const { pool } = require('../../config/database');
 const { ApiError } = require('../../utils/ApiError');
+const notificationService = require('../../utils/notificationService');
 
 const BCRYPT_ROUNDS = 12;
 const ACCESS_TOKEN_EXPIRY = '15m';
@@ -138,11 +139,11 @@ async function register(data) {
 }
 
 /**
- * Login: verify credentials, return tokens and user DTO.
+ * Login: verify credentials, handle lockouts, return tokens and user DTO.
  */
 async function login(email, password) {
   const result = await pool.query(
-    `SELECT id, email, password_hash, role, is_active, created_at, updated_at
+    `SELECT id, email, password_hash, role, is_active, created_at, updated_at, failed_login_attempts, locked_until
      FROM users WHERE email = $1`,
     [email]
   );
@@ -153,33 +154,39 @@ async function login(email, password) {
   if (!user.is_active) {
     throw new ApiError(403, 'Account is deactivated');
   }
+
+  // Check if locked
+  if (user.locked_until && new Date(user.locked_until) > new Date()) {
+    throw new ApiError(403, 'Account is temporarily locked due to multiple failed login attempts. Please try again later or reset your password.');
+  }
+
   const valid = await bcrypt.compare(password, user.password_hash);
   if (!valid) {
+    // Increment failed attempts
+    const updated = await pool.query(
+      `UPDATE users SET failed_login_attempts = failed_login_attempts + 1
+       WHERE id = $1 RETURNING failed_login_attempts`,
+      [user.id]
+    );
+    const attempts = updated.rows[0].failed_login_attempts;
+    if (attempts >= 5) {
+      // Lock for 15 minutes
+      await pool.query(
+        `UPDATE users SET locked_until = NOW() + INTERVAL '15 minutes' WHERE id = $1`,
+        [user.id]
+      );
+      throw new ApiError(403, 'Account is now locked due to 5 failed login attempts. Please wait 15 minutes or reset your password.');
+    }
     throw new ApiError(401, 'Invalid email or password');
   }
 
-  const accessToken = jwt.sign(
-    { userId: user.id, email: user.email, role: user.role },
-    process.env.JWT_SECRET,
-    { expiresIn: ACCESS_TOKEN_EXPIRY }
-  );
-  const refreshToken = jwt.sign(
-    { userId: user.id },
-    process.env.JWT_REFRESH_SECRET,
-    { expiresIn: REFRESH_TOKEN_EXPIRY }
-  );
-  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-  await pool.query(
-    `INSERT INTO refresh_tokens (user_id, token_hash, expires_at)
-     VALUES ($1, $2, $3)`,
-    [user.id, hashRefreshToken(refreshToken), expiresAt]
-  );
+  // Success -> reset attempts
+  await pool.query(`UPDATE users SET failed_login_attempts = 0, locked_until = NULL WHERE id = $1`, [user.id]);
 
+  const tokens = await issueTokens(user);
   return {
     user: toUserDto(user),
-    accessToken,
-    refreshToken,
-    expiresIn: 900,
+    ...tokens
   };
 }
 
@@ -383,6 +390,83 @@ async function loginWithGoogle(idToken) {
   }
 }
 
+/**
+ * Generate a password reset token and email it to the user.
+ */
+async function forgotPassword(email) {
+  const result = await pool.query(
+    `SELECT id, email, first_name FROM users 
+     LEFT JOIN patients ON users.id = patients.user_id
+     WHERE users.email = $1 AND users.is_active = true`,
+    [email]
+  );
+  
+  if (result.rows.length === 0) {
+    // Return true even if user doesn't exist to prevent email enumeration
+    return true; 
+  }
+  
+  const user = result.rows[0];
+  const resetToken = crypto.randomBytes(32).toString('hex');
+  const resetTokenHash = crypto.createHash('sha256').update(resetToken).digest('hex');
+  const expiresAt = new Date(Date.now() + 1 * 60 * 60 * 1000); // 1 hour
+  
+  await pool.query(
+    `UPDATE users SET reset_token_hash = $1, reset_token_expires = $2 WHERE id = $3`,
+    [resetTokenHash, expiresAt, user.id]
+  );
+  
+  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+  const resetLink = `${frontendUrl}/reset-password?token=${resetToken}&email=${encodeURIComponent(email)}`;
+  
+  const htmlBody = `
+    <h2>Password Reset Request</h2>
+    <p>Hi ${user.first_name || 'there'},</p>
+    <p>You recently requested to reset your password for your Q-Care account. Click the button below to reset it:</p>
+    <a href="${resetLink}" style="display:inline-block;padding:10px 20px;background-color:#0284c7;color:white;text-decoration:none;border-radius:5px;">Reset Password</a>
+    <p>If you didn't request this, please ignore this email. This link will expire in 1 hour.</p>
+  `;
+  
+  await notificationService.sendEmail(email, 'Q-Care Password Reset', htmlBody);
+  return true;
+}
+
+/**
+ * Verify token and update password.
+ */
+async function resetPassword(email, token, newPassword) {
+  const resetTokenHash = crypto.createHash('sha256').update(token).digest('hex');
+  
+  const result = await pool.query(
+    `SELECT id, reset_token_expires FROM users WHERE email = $1 AND reset_token_hash = $2`,
+    [email, resetTokenHash]
+  );
+  
+  const user = result.rows[0];
+  
+  if (!user || !user.reset_token_expires || new Date(user.reset_token_expires) < new Date()) {
+    throw new ApiError(400, 'Invalid or expired password reset token');
+  }
+  
+  const passwordHash = await bcrypt.hash(newPassword, BCRYPT_ROUNDS);
+  
+  // Update password, clear token, and unlock account in case it was locked
+  await pool.query(
+    `UPDATE users 
+     SET password_hash = $1, 
+         reset_token_hash = NULL, 
+         reset_token_expires = NULL,
+         failed_login_attempts = 0,
+         locked_until = NULL,
+         updated_at = NOW()
+     WHERE id = $2`,
+    [passwordHash, user.id]
+  );
+  
+  // Return a fresh login
+  return login(email, newPassword);
+}
+
 module.exports = {
   register,
   login,
@@ -390,4 +474,6 @@ module.exports = {
   logout,
   getMe,
   loginWithGoogle,
+  forgotPassword,
+  resetPassword,
 };

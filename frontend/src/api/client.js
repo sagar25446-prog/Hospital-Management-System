@@ -24,10 +24,24 @@ export function setAuthHelpers({ onAuthFailure: onFail }) {
   onAuthFailure = onFail ?? (() => {});
 }
 
+import * as Sentry from '@sentry/react';
+
 apiClient.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
+
+    // Optional: Log unexpected server errors (500+) to Sentry
+    if (error.response?.status >= 500) {
+      Sentry.captureException(error, {
+        extra: {
+          url: originalRequest?.url,
+          method: originalRequest?.method,
+          params: originalRequest?.params,
+          data: originalRequest?.data,
+        },
+      });
+    }
 
     if (error.response?.status === 401 && !originalRequest._retry && originalRequest.url !== '/auth/refresh') {
       originalRequest._retry = true;

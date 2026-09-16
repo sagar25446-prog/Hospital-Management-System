@@ -137,6 +137,52 @@ export default function LoginPage() {
               </motion.div>
             )}
 
+            <form 
+              onSubmit={async (e) => {
+                e.preventDefault();
+                setError('');
+                const email = e.target.email.value;
+                const password = e.target.password.value;
+                try {
+                  const res = await fetch(import.meta.env.VITE_API_URL + '/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                  });
+                  const data = await res.json();
+                  if (!res.ok) throw new Error(data.message || 'Login failed');
+                  handleGoogleSuccess({ user: data.user });
+                } catch (err) {
+                  setError(err.message);
+                }
+              }}
+              className="space-y-4 mb-6"
+            >
+              <div>
+                <label className="block text-sm font-medium text-slate-700">Email</label>
+                <input type="email" name="email" required className="mt-1 block w-full px-3 py-2 border border-slate-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700">Password</label>
+                <input type="password" name="password" required className="mt-1 block w-full px-3 py-2 border border-slate-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" />
+              </div>
+              <div className="flex justify-end">
+                <button type="button" onClick={() => navigate('/forgot-password')} className="text-sm text-indigo-600 hover:text-indigo-500 font-medium">Forgot Password?</button>
+              </div>
+              <button type="submit" className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700">
+                Sign In
+              </button>
+            </form>
+
+            <div className="relative mb-6">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-200"></div>
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-2 bg-white text-gray-500">Or continue with</span>
+              </div>
+            </div>
+
             {/* Google Sign-In Button */}
             <div className="space-y-6">
               <GoogleLoginButton onSuccess={handleGoogleSuccess} onError={setError} />

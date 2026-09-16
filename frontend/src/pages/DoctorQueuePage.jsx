@@ -7,7 +7,8 @@ import { usePolling } from '../hooks/usePolling';
 import { ErrorMessage, QRCodeDisplay } from '../components/common';
 import WritePrescriptionModal from '../components/common/WritePrescriptionModal';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Activity, Bell, Users, RefreshCw, ChevronRight, CheckCircle2, ShieldAlert, LogOut, Settings, FileText } from 'lucide-react';
+import { Activity, Bell, Users, RefreshCw, ChevronRight, CheckCircle2, ShieldAlert, LogOut, Settings, FileText, UserX } from 'lucide-react';
+import { updateAppointmentStatus } from '../api/appointments.api';
 
 export default function DoctorQueuePage() {
   const { doctorId: urlDoctorId } = useParams();
@@ -101,6 +102,19 @@ export default function DoctorQueuePage() {
       setActionError(err.response?.data?.message || err.message || 'Could not reset queue. Try again.');
     } finally {
       setResetLoading(false);
+    }
+  };
+
+  const handleNoShow = async (appointmentId) => {
+    if (!appointmentId) return;
+    if (!window.confirm('Mark this patient as a No-Show? They will be removed from the active queue.')) return;
+    setActionError('');
+    try {
+      await updateAppointmentStatus(appointmentId, 'no_show');
+      // After marking them no-show, we should also advance the queue to the next patient automatically
+      await handleNextPatient();
+    } catch (err) {
+      setActionError(err.response?.data?.message || err.message || 'Could not mark as no-show. Try again.');
     }
   };
 
@@ -257,9 +271,9 @@ export default function DoctorQueuePage() {
              </button>
           </div>
 
-          {/* Write Prescription Button */}
+          {/* Active Patient Actions */}
           {currentToken > 0 && (
-            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col sm:flex-row gap-3">
               <button
                 onClick={() => {
                   const servingPatient = tokens.find(t => t.token_number === currentToken);
@@ -272,9 +286,24 @@ export default function DoctorQueuePage() {
                     });
                   }
                 }}
-                className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition-colors shadow-sm shadow-blue-600/20"
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition-colors shadow-sm shadow-blue-600/20"
               >
                 <FileText className="h-5 w-5" /> Write Prescription
+              </button>
+              
+              <button
+                onClick={() => {
+                  const servingPatient = tokens.find(t => t.token_number === currentToken);
+                  if (servingPatient?.appointment_id) {
+                    handleNoShow(servingPatient.appointment_id);
+                  } else {
+                    alert('Cannot mark as no-show (no appointment linked).');
+                  }
+                }}
+                className="sm:w-auto w-full flex items-center justify-center gap-2 px-4 py-3 bg-gray-100 hover:bg-red-50 text-gray-700 hover:text-red-600 font-semibold rounded-xl border border-gray-200 transition-colors"
+                title="Patient didn't arrive"
+              >
+                <UserX className="h-5 w-5" /> No-Show
               </button>
             </motion.div>
           )}
@@ -308,14 +337,17 @@ export default function DoctorQueuePage() {
                              transition={{ duration: 0.2 }}
                              className={`flex items-center p-4 rounded-2xl transition-all ${index === 0 ? 'bg-brand-50 border border-brand-100 shadow-sm' : 'bg-gray-50 border border-transparent'}`}
                            >
-                             <div className={`h-10 w-10 flex shrink-0 items-center justify-center rounded-xl font-bold tabular-nums text-lg ${index === 0 ? 'bg-white text-brand-600 shadow-sm' : 'bg-gray-200 text-gray-600'}`}>
+                             <div className={`h-10 w-10 flex shrink-0 items-center justify-center rounded-xl font-bold tabular-nums text-lg ${index === 0 ? 'bg-white text-brand-600 shadow-sm' : (t.is_priority ? 'bg-amber-100 text-amber-700' : 'bg-gray-200 text-gray-600')}`}>
                                {t.token_number}
                              </div>
-                             <div className="ml-4 truncate">
+                             <div className="ml-4 truncate flex-1">
                                 <p className={`font-semibold truncate ${index === 0 ? 'text-gray-900' : 'text-gray-700'}`}>
                                   {[t.patient_first_name, t.patient_last_name].filter(Boolean).join(' ') || 'Anonymous'}
                                 </p>
-                                {index === 0 && <p className="text-xs font-bold text-brand-600 uppercase tracking-widest mt-1">Up Next</p>}
+                                <div className="flex items-center gap-2 mt-1">
+                                  {index === 0 && <span className="text-xs font-bold text-brand-600 uppercase tracking-widest">Up Next</span>}
+                                  {t.is_priority && <span className="text-xs font-bold text-amber-600 uppercase tracking-widest bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200">Priority</span>}
+                                </div>
                              </div>
                            </motion.div>
                          ))}

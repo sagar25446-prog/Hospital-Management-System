@@ -13,5 +13,6 @@ router.use(authMiddleware);
 
 router.post('/create-order', asyncHandler(paymentController.createOrder));
 router.post('/verify', asyncHandler(paymentController.verifyPayment));
+router.get('/invoices/:paymentId', asyncHandler(paymentController.getInvoice));
 
 module.exports = router;

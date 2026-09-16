@@ -17,5 +17,6 @@ router.get('/patients/:patientId', asyncHandler(appointmentController.listPatien
 router.get('/:id', asyncHandler(appointmentController.getAppointment));
 router.patch('/:id/status', asyncHandler(appointmentController.updateStatus));
 router.post('/:id/cancel', asyncHandler(appointmentController.cancelAppointment));
+router.put('/:id/reschedule', asyncHandler(appointmentController.rescheduleAppointment));
 
 module.exports = router;

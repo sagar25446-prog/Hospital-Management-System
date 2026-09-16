@@ -8,12 +8,19 @@ const router = express.Router();
 const authController = require('./auth.controller');
 const { asyncHandler } = require('../../utils/asyncHandler');
 const { authMiddleware } = require('../../middleware/authMiddleware');
+const rateLimiter = require('../../middleware/rateLimiter');
 
 router.post('/register', asyncHandler(authController.register));
-router.post('/login', asyncHandler(authController.login));
-router.post('/google', asyncHandler(authController.googleAuth));
+router.post('/login', rateLimiter.authLimiter, asyncHandler(authController.login));
+router.post('/google', rateLimiter.authLimiter, asyncHandler(authController.googleAuth));
 router.post('/refresh', asyncHandler(authController.refresh));
 router.post('/logout', asyncHandler(authController.logout));
+
+// Password Reset Routes
+router.post('/forgot-password', rateLimiter.authLimiter, asyncHandler(authController.forgotPassword));
+router.post('/reset-password', rateLimiter.authLimiter, asyncHandler(authController.resetPassword));
+
+// Protected routes
 router.get('/me', authMiddleware, asyncHandler(authController.getMe));
 
 module.exports = router;

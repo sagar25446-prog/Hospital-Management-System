@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Allow: /doctors
+Allow: /hospitals
+
+Sitemap: https://your-domain.com/sitemap.xml

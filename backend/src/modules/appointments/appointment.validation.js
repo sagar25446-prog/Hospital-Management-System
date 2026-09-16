@@ -129,6 +129,39 @@ function validateUpdateStatus(body) {
   return { value: { status } };
 }
 
+function validateRescheduleAppointment(body) {
+  const appointment_date = body?.appointment_date ?? body?.appointmentDate;
+  const start_time = body?.start_time ?? body?.startTime;
+  const end_time = body?.end_time ?? body?.endTime;
+
+  const dateVal = appointment_date ? parseDate(String(appointment_date).trim()) : null;
+  if (!dateVal) {
+    return { error: 'appointment_date is required and must be YYYY-MM-DD' };
+  }
+  if (dateVal < getTodayDate()) {
+    return { error: 'appointment_date cannot be in the past' };
+  }
+  const startVal = start_time != null ? parseTime(String(start_time).trim()) : null;
+  if (!startVal) {
+    return { error: 'start_time is required (HH:MM or HH:MM:SS)' };
+  }
+  const endVal = end_time != null ? parseTime(String(end_time).trim()) : null;
+  if (!endVal) {
+    return { error: 'end_time is required (HH:MM or HH:MM:SS)' };
+  }
+  if (startVal >= endVal) {
+    return { error: 'start_time must be before end_time' };
+  }
+
+  return {
+    value: {
+      appointment_date: dateVal,
+      start_time: startVal,
+      end_time: endVal,
+    },
+  };
+}
+
 module.exports = {
   APPOINTMENT_STATUSES,
   parseDate,
@@ -137,4 +170,5 @@ module.exports = {
   validateBookAppointment,
   validateListQuery,
   validateUpdateStatus,
+  validateRescheduleAppointment,
 };

@@ -32,3 +32,8 @@ export async function cancelAppointment(id) {
   const { data } = await apiClient.post(`appointments/${id}/cancel`);
   return data;
 }
+
+export async function rescheduleAppointment(id, payload) {
+  const { data } = await apiClient.put(`appointments/${id}/reschedule`, payload);
+  return data;
+}

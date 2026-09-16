@@ -3,7 +3,7 @@
  * Returns { error: string } or { value: object }.
  */
 
-const QUEUE_STATUSES = ['waiting', 'called', 'serving', 'completed', 'cancelled'];
+const QUEUE_STATUSES = ['waiting', 'called', 'serving', 'completed', 'cancelled', 'no_show'];
 
 function parseDate(str) {
   if (!str || typeof str !== 'string') return null;

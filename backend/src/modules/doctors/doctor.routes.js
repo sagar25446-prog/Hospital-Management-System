@@ -22,4 +22,9 @@ router.post('/', authMiddleware, requireRole(['admin']), asyncHandler(doctorCont
 router.patch('/:id', authMiddleware, asyncHandler(doctorController.updateDoctor));
 router.put('/:id/schedule', authMiddleware, asyncHandler(doctorController.setSchedule));
 
+// Schedule exceptions
+router.get('/:id/exceptions', authMiddleware, asyncHandler(doctorController.getExceptions));
+router.post('/:id/exceptions', authMiddleware, asyncHandler(doctorController.addException));
+router.delete('/:id/exceptions/:exceptionId', authMiddleware, asyncHandler(doctorController.removeException));
+
 module.exports = router;

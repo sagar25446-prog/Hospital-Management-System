@@ -211,26 +211,173 @@ function DoctorProfilePage() {
             </div>
           </div>
 
-          <div className="flex justify-end pt-4 border-t border-gray-100">
-            <button
-              type="submit"
-              disabled={loading}
-              className="btn-premium flex items-center"
-            >
-              {loading ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  Saving...
-                </>
-              ) : (
-                'Save Profile'
-              )}
-            </button>
-          </div>
-        </form>
+            <div className="flex justify-end pt-4 border-t border-gray-100">
+              <button
+                type="submit"
+                disabled={loading}
+                className="btn-premium flex items-center"
+              >
+                {loading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Saving...
+                  </>
+                ) : (
+                  'Save Profile'
+                )}
+              </button>
+            </div>
+          </form>
+
+          {/* Blocked Dates Section */}
+          <BlockedDatesManager doctorId={profile.id} />
+        </div>
       </div>
-    </div>
-  );
-}
+    );
+  }
+
+  // Define BlockedDatesManager component below
+  function BlockedDatesManager({ doctorId }) {
+    const { getScheduleExceptions, addScheduleException, removeScheduleException } = require('../api/doctors.api');
+    const { Calendar, Trash2 } = require('lucide-react');
+    
+    const [exceptions, setExceptions] = useState([]);
+    const [newDate, setNewDate] = useState('');
+    const [newNotes, setNewNotes] = useState('');
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState('');
+
+    const fetchExceptions = async () => {
+      try {
+        const data = await getScheduleExceptions(doctorId);
+        setExceptions(data);
+      } catch (err) {
+        console.error('Failed to load exceptions', err);
+      }
+    };
+
+    useEffect(() => {
+      if (doctorId) {
+        fetchExceptions();
+      }
+    }, [doctorId]);
+
+    const handleAdd = async (e) => {
+      e.preventDefault();
+      if (!newDate) return;
+      setLoading(true);
+      setError('');
+      try {
+        await addScheduleException(doctorId, {
+          exception_date: newDate,
+          is_available: false,
+          notes: newNotes
+        });
+        setNewDate('');
+        setNewNotes('');
+        fetchExceptions();
+      } catch (err) {
+        setError(err.response?.data?.message || 'Failed to add exception');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    const handleDelete = async (exceptionId) => {
+      if (!window.confirm('Remove this blocked date?')) return;
+      try {
+        await removeScheduleException(doctorId, exceptionId);
+        fetchExceptions();
+      } catch (err) {
+        console.error('Failed to delete exception', err);
+      }
+    };
+
+    return (
+      <div className="glass-panel p-6 sm:p-8 mt-8">
+        <div className="flex items-center space-x-3 mb-6 border-b border-gray-100 pb-4">
+          <div className="bg-orange-100 p-2 rounded-lg">
+            <Calendar className="h-5 w-5 text-orange-600" />
+          </div>
+          <div>
+            <h2 className="text-xl font-display font-bold text-gray-900">Blocked Dates</h2>
+            <p className="text-sm text-gray-500">Add dates when you are unavailable (e.g., holidays, leave).</p>
+          </div>
+        </div>
+
+        {error && <ErrorMessage message={error} />}
+
+        <form onSubmit={handleAdd} className="flex flex-col sm:flex-row items-end gap-4 mb-6">
+          <div className="flex-1 w-full">
+            <label className="block text-sm font-semibold text-gray-700 mb-1">Date</label>
+            <input
+              type="date"
+              required
+              min={new Date().toISOString().split('T')[0]}
+              value={newDate}
+              onChange={(e) => setNewDate(e.target.value)}
+              className="w-full rounded-xl border-gray-200 bg-gray-50 focus:bg-white focus:ring-brand-500 focus:border-brand-500"
+            />
+          </div>
+          <div className="flex-1 w-full">
+            <label className="block text-sm font-semibold text-gray-700 mb-1">Reason (Optional)</label>
+            <input
+              type="text"
+              placeholder="e.g., Vacation"
+              value={newNotes}
+              onChange={(e) => setNewNotes(e.target.value)}
+              className="w-full rounded-xl border-gray-200 bg-gray-50 focus:bg-white focus:ring-brand-500 focus:border-brand-500"
+            />
+          </div>
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full sm:w-auto px-4 py-2 bg-slate-900 text-white font-medium rounded-xl hover:bg-slate-800 disabled:opacity-50"
+          >
+            {loading ? 'Adding...' : 'Block Date'}
+          </button>
+        </form>
+
+        {exceptions.length > 0 ? (
+          <div className="overflow-hidden rounded-xl border border-gray-200">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Reason</th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {exceptions.map(exc => (
+                  <tr key={exc.id}>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                      {new Date(exc.exception_date).toLocaleDateString()}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {exc.notes || '-'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <button
+                        onClick={() => handleDelete(exc.id)}
+                        className="text-red-600 hover:text-red-900 bg-red-50 p-2 rounded-lg hover:bg-red-100 transition-colors"
+                        title="Remove block"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="text-center py-6 bg-gray-50 rounded-xl border border-dashed border-gray-300">
+            <p className="text-gray-500 text-sm">No blocked dates set.</p>
+          </div>
+        )}
+      </div>
+    );
+  }
 
 export default DoctorProfilePage;

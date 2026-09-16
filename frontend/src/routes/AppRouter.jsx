@@ -7,6 +7,8 @@ import ProtectedRoute from '../components/auth/ProtectedRoute';
 import LandingPage from '../pages/LandingPage';
 import LoginPage from '../pages/LoginPage';
 import OnboardingPage from '../pages/OnboardingPage';
+import ForgotPasswordPage from '../pages/ForgotPasswordPage';
+import ResetPasswordPage from '../pages/ResetPasswordPage';
 
 // Lazy: everything else loads on demand
 const Dashboard = lazy(() => import('../pages/Dashboard'));
@@ -57,6 +59,8 @@ function AppRouter() {
       {/* Public Landing Page & Auth */}
       <Route path="/" element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <LandingPage />} />
       <Route path="/login" element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <LoginPage />} />
+      <Route path="/forgot-password" element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <ForgotPasswordPage />} />
+      <Route path="/reset-password" element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <ResetPasswordPage />} />
       <Route path="/onboarding" element={isAuthenticated ? <OnboardingPage /> : <Navigate to="/login" replace />} />
 
       {/* Public: anyone can view doctors list and individual queues */}

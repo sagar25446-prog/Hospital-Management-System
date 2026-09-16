@@ -301,12 +301,31 @@ export default function MedicalRecordsPage() {
                               </div>
                             )}
 
-                            <button
-                              onClick={() => handleDownloadPDF(p)}
-                              className="mt-4 w-full btn-premium"
-                            >
-                              <Download className="h-4 w-4 mr-2" /> Download PDF Prescription
-                            </button>
+                            <div className="mt-4 flex flex-col sm:flex-row gap-3">
+                              <button
+                                onClick={() => handleDownloadPDF(p)}
+                                className="flex-1 btn-premium"
+                              >
+                                <Download className="h-4 w-4 mr-2" /> Download Prescription
+                              </button>
+                              
+                              <button
+                                onClick={async () => {
+                                  try {
+                                    const { getInvoice } = require('../api/payment.api');
+                                    const { generateInvoicePDF } = require('../utils/generateInvoicePDF');
+                                    // Fetch the invoice using the appointment_id
+                                    const invoiceData = await getInvoice(p.appointment_id);
+                                    generateInvoicePDF(invoiceData);
+                                  } catch (err) {
+                                    alert('Invoice not found or could not be generated. Note: Invoices are only available for paid appointments.');
+                                  }
+                                }}
+                                className="flex-1 px-4 py-2 bg-slate-100 text-slate-700 font-medium rounded-xl hover:bg-slate-200 transition-all flex items-center justify-center border border-slate-200"
+                              >
+                                <FileText className="h-4 w-4 mr-2" /> Download Invoice
+                              </button>
+                            </div>
                           </div>
                         </motion.div>
                       )}

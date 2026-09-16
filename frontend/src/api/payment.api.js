@@ -22,3 +22,8 @@ export const verifyPayment = async ({ appointmentId, razorpay_order_id, razorpay
   });
   return data;
 };
+
+export const getInvoice = async (paymentId) => {
+  const { data } = await client.get(`/payments/invoices/${paymentId}`);
+  return data;
+};

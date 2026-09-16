@@ -10,6 +10,8 @@ const {
   validateRefresh,
   validateLogout,
   validateGoogleAuth,
+  validateForgotPassword,
+  validateResetPassword,
 } = require('./auth.validation');
 
 const isProd = process.env.NODE_ENV === 'production';
@@ -112,6 +114,38 @@ async function getMe(req, res, next) {
   }
 }
 
+async function forgotPassword(req, res, next) {
+  const result = validateForgotPassword(req.body);
+  if (result.error) {
+    return res.status(400).json({ message: result.error });
+  }
+  try {
+    await authService.forgotPassword(result.value.email);
+    // Always return success to prevent email enumeration
+    return res.json({ message: 'If an account with that email exists, we have sent a password reset link.' });
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function resetPassword(req, res, next) {
+  const result = validateResetPassword(req.body);
+  if (result.error) {
+    return res.status(400).json({ message: result.error });
+  }
+  try {
+    const data = await authService.resetPassword(
+      result.value.email,
+      result.value.token,
+      result.value.newPassword
+    );
+    setTokenCookies(res, data.accessToken, data.refreshToken);
+    return res.json({ user: data.user, expiresIn: data.expiresIn });
+  } catch (err) {
+    next(err);
+  }
+}
+
 module.exports = {
   register,
   login,
@@ -119,4 +153,6 @@ module.exports = {
   logout,
   getMe,
   googleAuth,
+  forgotPassword,
+  resetPassword,
 };

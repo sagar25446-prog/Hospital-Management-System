@@ -4,7 +4,21 @@ import { GoogleOAuthProvider } from '@react-oauth/google';
 import App from './App';
 import './index.css';
 
+import * as Sentry from "@sentry/react";
+
 const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+
+Sentry.init({
+  dsn: import.meta.env.VITE_SENTRY_DSN, // Automatically skips if undefined
+  integrations: [
+    Sentry.browserTracingIntegration(),
+    Sentry.replayIntegration(),
+  ],
+  tracesSampleRate: 1.0,
+  tracePropagationTargets: ["localhost", /^\/api/],
+  replaysSessionSampleRate: 0.1,
+  replaysOnErrorSampleRate: 1.0,
+});
 
 function Root() {
   // Render the app either way; GoogleLoginButton itself hides/disables

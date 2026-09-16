@@ -16,8 +16,11 @@ export default function VideoCallButton({ doctorId, doctorName, patientName }) {
   const roomRef = useRef('');
 
   const startCall = useCallback(() => {
-    // Generate a unique room name per session
-    roomRef.current = `qcare-consult-${doctorId}-${Date.now()}`;
+    // Generate a cryptographically secure, unguessable room name
+    const secureId = typeof crypto !== 'undefined' && crypto.randomUUID 
+      ? crypto.randomUUID() 
+      : Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+    roomRef.current = `qcare-consult-${doctorId}-${secureId}`;
     setIsCallActive(true);
   }, [doctorId]);
 

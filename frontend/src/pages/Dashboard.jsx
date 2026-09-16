@@ -5,6 +5,7 @@ import { getMe } from '../api/auth.api';
 import { getQueueHistory, getAppointmentHistory } from '../api/patients.api';
 import { getEstimate } from '../api/queue.api';
 import { getDashboard, getQueues, getDoctorsWorkload, createStaff, listStaff } from '../api/admin.api';
+import { rescheduleAppointment } from '../api/appointments.api';
 import { ErrorMessage } from '../components/common';
 import { motion, AnimatePresence } from 'framer-motion';
 import { User, Activity, Clock, Calendar, ChevronRight, Users, LayoutDashboard, Search, FileText, LogOut, CalendarPlus, BellRing, UserCog, Stethoscope, Mail, Lock, UserPlus, Shield } from 'lucide-react';
@@ -144,6 +145,27 @@ function PatientDashboardContent() {
       </div>
     );
   }
+
+  const [rescheduleModal, setRescheduleModal] = useState({ open: false, appointment: null, date: '', startTime: '', endTime: '', loading: false });
+
+  const handleReschedule = async (e) => {
+    e.preventDefault();
+    if (!rescheduleModal.appointment) return;
+    setRescheduleModal(prev => ({ ...prev, loading: true }));
+    try {
+      await rescheduleAppointment(rescheduleModal.appointment.appointment_id, {
+        appointment_date: rescheduleModal.date,
+        start_time: rescheduleModal.startTime,
+        end_time: rescheduleModal.endTime,
+      });
+      // Refresh patient history
+      fetchPatientId(); // Simple way to trigger re-fetch by triggering effect
+      setRescheduleModal({ open: false, appointment: null, date: '', startTime: '', endTime: '', loading: false });
+    } catch (err) {
+      alert(err.response?.data?.message || err.message || 'Failed to reschedule');
+      setRescheduleModal(prev => ({ ...prev, loading: false }));
+    }
+  };
 
   return (
     <div className="space-y-6 max-w-2xl mx-auto pb-12">
@@ -333,17 +355,101 @@ function PatientDashboardContent() {
                  </span>
               </div>
               
-              {latestAppointment.doctor_id && (
-                <Link to={`/queue/${latestAppointment.doctor_id}`}>
-                  <button className="h-12 w-12 rounded-full bg-gray-50 border border-gray-100 flex items-center justify-center text-gray-400 hover:bg-brand-50 hover:text-brand-600 hover:border-brand-100 transition-all shadow-sm">
-                     <ChevronRight className="h-5 w-5 ml-0.5" />
+              <div className="flex flex-col sm:flex-row items-center gap-3">
+                {latestAppointment.status === 'scheduled' && (
+                  <button
+                    onClick={() => setRescheduleModal({
+                      open: true,
+                      appointment: latestAppointment,
+                      date: latestAppointment.appointment_date,
+                      startTime: latestAppointment.start_time || '',
+                      endTime: latestAppointment.end_time || '',
+                      loading: false
+                    })}
+                    className="text-sm font-semibold text-brand-600 bg-brand-50 hover:bg-brand-100 px-4 py-2 rounded-xl transition-colors border border-brand-200"
+                  >
+                    Reschedule
                   </button>
-                </Link>
-              )}
+                )}
+                {latestAppointment.doctor_id && (
+                  <Link to={`/queue/${latestAppointment.doctor_id}`}>
+                    <button className="h-10 w-10 sm:h-12 sm:w-12 rounded-full bg-gray-50 border border-gray-100 flex items-center justify-center text-gray-400 hover:bg-brand-50 hover:text-brand-600 hover:border-brand-100 transition-all shadow-sm">
+                       <ChevronRight className="h-5 w-5 ml-0.5" />
+                    </button>
+                  </Link>
+                )}
+              </div>
             </div>
           )}
         </div>
       </motion.div>
+
+      {/* Reschedule Modal */}
+      <AnimatePresence>
+        {rescheduleModal.open && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/40 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white rounded-3xl shadow-xl w-full max-w-md overflow-hidden border border-gray-100 p-6"
+            >
+              <h2 className="text-xl font-bold text-gray-900 mb-4">Reschedule Appointment</h2>
+              <form onSubmit={handleReschedule} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">Date</label>
+                  <input
+                    type="date"
+                    required
+                    min={getTodayDateStr()}
+                    value={rescheduleModal.date}
+                    onChange={(e) => setRescheduleModal(prev => ({ ...prev, date: e.target.value }))}
+                    className="w-full rounded-xl border-gray-200 bg-gray-50 focus:bg-white focus:ring-brand-500 focus:border-brand-500"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1">Start Time</label>
+                    <input
+                      type="time"
+                      required
+                      value={rescheduleModal.startTime}
+                      onChange={(e) => setRescheduleModal(prev => ({ ...prev, startTime: e.target.value }))}
+                      className="w-full rounded-xl border-gray-200 bg-gray-50 focus:bg-white focus:ring-brand-500 focus:border-brand-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1">End Time</label>
+                    <input
+                      type="time"
+                      required
+                      value={rescheduleModal.endTime}
+                      onChange={(e) => setRescheduleModal(prev => ({ ...prev, endTime: e.target.value }))}
+                      className="w-full rounded-xl border-gray-200 bg-gray-50 focus:bg-white focus:ring-brand-500 focus:border-brand-500"
+                    />
+                  </div>
+                </div>
+                <div className="flex justify-end gap-3 pt-4">
+                  <button
+                    type="button"
+                    onClick={() => setRescheduleModal({ open: false, appointment: null, date: '', startTime: '', endTime: '', loading: false })}
+                    className="px-4 py-2 rounded-xl text-gray-600 font-semibold border border-gray-200 hover:bg-gray-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={rescheduleModal.loading}
+                    className="px-5 py-2 rounded-xl bg-brand-600 text-white font-semibold hover:bg-brand-700 disabled:opacity-50 transition-colors"
+                  >
+                    {rescheduleModal.loading ? 'Updating...' : 'Confirm'}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

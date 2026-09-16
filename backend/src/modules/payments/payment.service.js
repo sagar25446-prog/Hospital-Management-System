@@ -232,8 +232,32 @@ async function handleWebhook(rawBody, signatureHeader) {
   return { received: true };
 }
 
+async function getInvoice(paymentId) {
+  const result = await pool.query(
+    `SELECT i.*, 
+            a.appointment_date, a.start_time,
+            p.first_name AS patient_first_name, p.last_name AS patient_last_name,
+            d.first_name AS doctor_first_name, d.last_name AS doctor_last_name,
+            h.name AS hospital_name, h.address AS hospital_address, h.gstin AS hospital_gstin
+     FROM invoices i
+     JOIN appointments a ON i.appointment_id = a.id
+     JOIN patients p ON i.patient_id = p.id
+     JOIN doctors d ON a.doctor_id = d.id
+     LEFT JOIN hospitals h ON true -- Fetching the single hospital record (if single-tenant)
+     WHERE i.razorpay_payment_id = $1 OR i.id::text = $1 OR i.appointment_id::text = $1 LIMIT 1`,
+    [paymentId]
+  );
+
+  if (result.rows.length === 0) {
+    throw new ApiError(404, 'Invoice not found');
+  }
+
+  return result.rows[0];
+}
+
 module.exports = {
   createOrder,
   verifyAndCapture,
   handleWebhook,
+  getInvoice,
 };

@@ -145,6 +145,39 @@ async function cancelAppointment(req, res, next) {
   }
 }
 
+const { validateRescheduleAppointment } = require('./appointment.validation');
+
+async function rescheduleAppointment(req, res, next) {
+  const { id } = req.params;
+  const result = validateRescheduleAppointment(req.body);
+  if (result.error) {
+    return res.status(400).json({ message: result.error });
+  }
+  
+  try {
+    const appointment = await appointmentService.getAppointmentById(id);
+    if (req.user.role === 'patient') {
+      const ownPatientId = await queueService.getPatientIdByUserId(req.user.id);
+      if (ownPatientId !== appointment.patient_id) {
+        return res.status(403).json({ message: 'You can only reschedule your own appointments' });
+      }
+    } else if (req.user.role === 'doctor') {
+      const ownDoctorId = await queueService.getDoctorIdByUserId(req.user.id);
+      if (ownDoctorId !== appointment.doctor_id) {
+        return res.status(403).json({ message: 'You can only reschedule your own appointments' });
+      }
+    } else if (!['admin', 'reception'].includes(req.user.role)) {
+      return res.status(403).json({ message: 'Insufficient permissions' });
+    }
+    
+    const { appointment_date, start_time, end_time } = result.value;
+    const updated = await appointmentService.rescheduleAppointment(id, appointment_date, start_time, end_time);
+    return res.json(updated);
+  } catch (err) {
+    next(err);
+  }
+}
+
 module.exports = {
   bookAppointment,
   listDoctorAppointments,
@@ -152,4 +185,5 @@ module.exports = {
   getAppointment,
   updateStatus,
   cancelAppointment,
+  rescheduleAppointment,
 };
